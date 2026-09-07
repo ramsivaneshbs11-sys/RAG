@@ -1,0 +1,50 @@
+# Git & Agent Metadata
+.git
+.gitignore
+.agents
+
+# Python Caches & Environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+ENV/
+
+# Local Dev Scratch & Testing Tools
+scratch/
+rag-testing-mcp/
+tests/
+scripts/
+
+# Root Forwarder Scripts & Batches
+start_dev.bat
+gemini_batch_extract.py
+ingest_to_qdrant.py
+run_batch_inputs.py
+run_pipeline.py
+run_scanned_ingestion.py
+
+# Temporary Data / Output Directories
+inputs/
+outputs/
+metrics/
+preprocessed/
+data/
+uploads/
+
+# Environments & Secrets
+.env
+
+# Frontend Build & Node Modules
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+admin_page/node_modules/
+admin_page/dist/
+
+# Document / Log Artifacts
+*.log
+*.pdf
