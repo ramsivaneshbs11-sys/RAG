@@ -79,6 +79,24 @@ def route_and_retrieve(
             chunks     (list[dict])— top-K reranked chunks
             mode       (str)       — prompt mode forwarded from caller
     """
+    # ── Auto-detect Current Affairs Intent ──────────────────────────────────
+    # If user asks about news/today/headlines/current affairs, force current_affairs mode
+    # even if the UI dropdown is left on "prelims"
+    query_lower = query.lower()
+    ca_keywords = [
+        "today news", "today's news", "news today", "daily news",
+        "current affairs", "latest news", "today headlines", "today's headlines",
+        "current news", "news summary", "news briefing", "today brief",
+        "what is today news", "tell me today news", "whats today news",
+        "news pathi", "today news pathi", "daily news update"
+    ]
+    if any(kw in query_lower for kw in ca_keywords):
+        if mode != "current_affairs":
+            logger.info(
+                f"Router: Auto-detected Current Affairs intent in query '{query}' → Overriding mode '{mode}' to 'current_affairs'"
+            )
+            mode = "current_affairs"
+
     # ── Dynamic mode-specific top_k ──────────────────────────────────────────
     # Prelims  → 5 chunks  (sharp factual precision, fastest)
     # Current Affairs → 8 chunks  (multi-source web/local coverage)
@@ -91,7 +109,7 @@ def route_and_retrieve(
         else:  # prelims (default)
             top_k = RETRIEVAL_FINAL_TOP_K
 
-    # ── Current Affairs Mode: Local Qdrant First → Web Search Fallback ────────
+    # ── Current Affairs Mode: Local Qdrant First → Rerank-Gated Web Fallback ───
     if mode == "current_affairs":
         logger.info(
             f"Router: mode='current_affairs' → Checking local '{CA_NEWS_COLLECTION}' first..."
@@ -106,10 +124,11 @@ def route_and_retrieve(
                 collection_names=[CA_NEWS_COLLECTION],
                 top_k=RETRIEVAL_CANDIDATE_K * 2,
             )
-            # Accuracy fix: lower threshold 0.50→0.40 (news chunks score lower due to noisy text)
-            # Require at least 2 candidates above threshold to avoid false positives
-            high_score_count = sum(1 for c in local_candidates if c.get("score", 0.0) >= 0.40)
-            if local_candidates and high_score_count >= 2:
+            # Accuracy fix: lower threshold 0.40→0.30 for broad news queries
+            is_broad = any(kw in query_lower for kw in ["today news", "daily news", "news today", "today's news", "current affairs", "latest news"])
+            threshold = 0.30 if is_broad else 0.40
+            high_score_count = sum(1 for c in local_candidates if c.get("score", 0.0) >= threshold)
+            if local_candidates and (high_score_count >= 1 or is_broad):
                 candidates = local_candidates
                 routing = "current_affairs_local"
                 best_score = max(c.get("score", 0.0) for c in candidates)
@@ -120,15 +139,45 @@ def route_and_retrieve(
         except Exception as exc:
             logger.warning(f"Router: Error querying local CA collection: {exc}")
 
-        # 2. If not found in local news collection, fallback to live parallel web search
+        # 2. If not found in local news collection, fallback to live web search (Tavily+Serper)
         if not candidates:
             logger.info(
-                f"Router: [current_affairs] Not in local cache. Running parallel web search (DDG + SearXNG)..."
+                "Router: [current_affairs] Not in local cache. Running web search (Tavily+Serper)..."
             )
             candidates = parallel_search(user_query=query)
             routing = "current_affairs_web"
 
+        # 3. Rerank whatever we have
         top_chunks = rerank(query=query, candidates=candidates, top_k=top_k)
+
+        # 4. Rerank-score gate: if local chunks are too weak (all scores < 0.0),
+        #    the LLM will reject them anyway. Proactively run web search (Tavily+Serper)
+        #    so the user gets a real answer instead of "insufficient info".
+        if routing == "current_affairs_local":
+            best_rerank = max((c.get("rerank_score", -999) for c in top_chunks), default=-999)
+            if best_rerank < 0.0:
+                logger.info(
+                    f"Router: [current_affairs] Local rerank score too low ({best_rerank:.3f} < 0.0). "
+                    "Triggering Tavily+Serper web search fallback..."
+                )
+                web_candidates = parallel_search(user_query=query)
+                if web_candidates:
+                    web_chunks = rerank(query=query, candidates=web_candidates, top_k=top_k)
+                    web_best = max((c.get("rerank_score", -999) for c in web_chunks), default=-999)
+                    if web_best > best_rerank:
+                        logger.info(
+                            f"Router: [current_affairs] Web search improved score "
+                            f"{best_rerank:.3f} → {web_best:.3f}. Using web chunks ✓"
+                        )
+                        top_chunks = web_chunks
+                        candidates = web_candidates
+                        routing = "current_affairs_web_fallback"
+                    else:
+                        logger.info(
+                            f"Router: [current_affairs] Web search did not improve score "
+                            f"({web_best:.3f}). Keeping local chunks."
+                        )
+
         top_chunks = expand_with_siblings(top_chunks, PREPROCESSED_DIR)
 
         logger.info(

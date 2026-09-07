@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "rag-testing": {
+      "command": "python",
+      "args": ["-m", "rag_testing_mcp.server"],
+      "env": {
+        "RAG_API_URL": "http://localhost:8000",
+        "RAG_QUERY_ENDPOINT": "/api/v1/query",
+        "RAG_HEALTH_ENDPOINT": "/health",
+        "RAG_CACHE_STATS_ENDPOINT": "/api/v1/cache/stats",
+        "PYTHONPATH": "./rag-testing-mcp/src"
+      }
+    }
+  }
+}

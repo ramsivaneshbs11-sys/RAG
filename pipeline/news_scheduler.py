@@ -13,8 +13,15 @@ log = logging.getLogger(__name__)
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-JSON_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "backend", "data", "daily_news.json")
+# Canonical path: .../RAG-main/ram_chatbot-main/backend/data/daily_news.json
+# pipeline/ is 2 levels down from repo root (RAG-main/RAG-main/pipeline/ → RAG-main/)
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.normpath(os.path.join(_THIS_DIR, "..", ".."))    # RAG-main/ (outer)
+_PRIMARY   = os.path.join(_REPO_ROOT, "ram_chatbot-main", "backend", "data", "daily_news.json")
+_FALLBACK  = os.path.normpath(os.path.join(_THIS_DIR, "..", "backend", "data", "daily_news.json"))
+JSON_DB_PATH = _PRIMARY if os.path.exists(os.path.dirname(_PRIMARY)) else _FALLBACK
 RETENTION_DAYS = 5
+
 
 SOURCES = {
     "hindu_sections": [
@@ -116,13 +123,12 @@ def _scrape_article(url: str, source: str) -> dict | None:
         return None
 
 
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
 # ─── AI Analysis ─────────────────────────────────────────────────────────────
 
 def _ai_analyze(articles: list, date: str) -> dict | None:
-    if not GEMINI_API_KEY and not OPENAI_API_KEY:
-        log.warning("No API KEY found (Gemini/OpenAI) — using fallback categorization")
-        return _fallback_analyze(articles, date)
-
     prompt = f"""You are a UPSC Current Affairs Expert. Analyze these news articles for {date}.
 
 Articles: {json.dumps(articles, ensure_ascii=False)[:8000]}
@@ -166,25 +172,54 @@ Rules:
 - mainsAnswer must follow UPSC answer writing format
 - If an article's content is short or missing (e.g., due to a paywall), DO NOT say "content missing". Instead, use the TITLE to identify the core topic and use your own extensive knowledge to generate the summary, whyImportant, prelimsQuestions, and mainsAnswer."""
 
-    if GEMINI_API_KEY:
+    # 1. Try Groq API (High rate limit, fast)
+    if GROQ_API_KEY:
         try:
-            log.info("Attempting Gemini AI analysis...")
-            from google import genai
-            from google.genai import types
-            client = genai.Client(api_key=GEMINI_API_KEY)
-            resp = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                ),
-            )
-            return json.loads(resp.text, strict=False)
+            log.info(f"Attempting Groq AI analysis using {GROQ_MODEL}...")
+            import requests as req
+            headers = {
+                "Authorization": f"Bearer {GROQ_API_KEY.strip()}",
+                "Content-Type": "application/json"
+            }
+            body = {
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are a UPSC Current Affairs Expert. Respond ONLY in valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.2
+            }
+            res = req.post("https://api.groq.com/openai/v1/chat/completions", json=body, headers=headers, timeout=30)
+            if res.status_code == 200:
+                raw_json = res.json()["choices"][0]["message"]["content"]
+                return json.loads(raw_json)
+            else:
+                log.warning(f"Groq API returned status {res.status_code}: {res.text[:150]}")
         except Exception as e:
-            log.error(f"Gemini AI analysis failed: {e}")
-            if not OPENAI_API_KEY:
-                return _fallback_analyze(articles, date)
+            log.error(f"Groq AI analysis failed: {e}")
 
+    # 2. Try Gemini API (with key rotation across comma-separated keys)
+    if GEMINI_API_KEY:
+        gemini_keys = [k.strip() for k in GEMINI_API_KEY.split(",") if k.strip()]
+        for gkey in gemini_keys:
+            try:
+                log.info(f"Attempting Gemini AI analysis with key ending in ...{gkey[-4:]}...")
+                from google import genai
+                from google.genai import types
+                client = genai.Client(api_key=gkey)
+                resp = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                    ),
+                )
+                return json.loads(resp.text, strict=False)
+            except Exception as e:
+                log.warning(f"Gemini key failed ({gkey[-4:]}): {e}")
+
+    # 3. Try OpenAI API
     if OPENAI_API_KEY:
         try:
             log.info("Attempting OpenAI AI analysis...")
@@ -199,8 +234,8 @@ Rules:
             return json.loads(resp.choices[0].message.content)
         except Exception as e:
             log.error(f"OpenAI AI analysis failed: {e}")
-            return _fallback_analyze(articles, date)
 
+    # 4. Fallback rule-based
     return _fallback_analyze(articles, date)
 
 

@@ -45,6 +45,7 @@ Response:
 import logging
 import asyncio
 import json
+import time
 from typing import Optional, Any
 
 from fastapi import APIRouter, HTTPException, status, Depends
@@ -53,6 +54,7 @@ from sqlalchemy.orm import Session
 
 from app.retrieval.query_classifier import classify_query
 from app.retrieval.retrieval_router import route_and_retrieve
+from app.retrieval.intent_router    import classify_intent, ROUTE_DIRECT
 from app.retrieval.generator        import (
     generate_grounded_answer,
     get_session_history,
@@ -74,7 +76,7 @@ router = APIRouter(prefix="/api/v1", tags=["query"])
 class QueryRequest(BaseModel):
     query: str = Field(
         ...,
-        min_length=3,
+        min_length=1,
         max_length=1000,
         description="The user's UPSC-related search query.",
         examples=["What is cultural ecology?"],
@@ -151,6 +153,11 @@ class QueryResponse(BaseModel):
     gate_reason:      Optional[str] # Why gate triggered (or None)
     # ── Cache metadata ──────────────────────────────────────────────────────────
     cache_hit:        bool          # True = answer served from response cache
+    # ── Pre-RAG Intent Router metadata ──────────────────────────────────────────
+    intent:           Optional[str] = None
+    route:            Optional[str] = None
+    rag_bypassed:     Optional[bool] = False
+    latency_ms:       Optional[float] = 0.0
     # ── User-facing transparency log ────────────────────────────────────────────
     log_info:         str           # Human-readable confirmation of which DB was searched
     # ── Retrieved evidence ──────────────────────────────────────────────────────
@@ -179,6 +186,37 @@ async def query_rag(
     session_id = body.session_id
 
     logger.info(f"[QUERY] Incoming: '{query[:80]}' | top_k={top_k} | mode={mode} | sub_mode={sub_mode} | session_id={session_id}")
+
+    t_start = time.perf_counter()
+
+    # ── Pre-RAG Intent Router ─────────────────────────────────────────────────
+    # Runs BEFORE embedding, Qdrant, reranker, web search, and LLM.
+    intent_result = classify_intent(query)
+    if intent_result.rag_bypassed:
+        latency_ms = (time.perf_counter() - t_start) * 1000
+        return QueryResponse(
+            query=query,
+            mode=mode,
+            sub_mode=sub_mode,
+            classification=intent_result.intent,
+            confidence=intent_result.confidence,
+            all_scores={},
+            routing=ROUTE_DIRECT,
+            total_candidates=0,
+            answer=intent_result.direct_response,
+            answered=True,
+            citations=[],
+            rich_citations=[],
+            gated=False,
+            gate_reason=None,
+            cache_hit=False,
+            intent=intent_result.intent,
+            route=ROUTE_DIRECT,
+            rag_bypassed=True,
+            latency_ms=round(latency_ms, 2),
+            log_info=f"Intent={intent_result.intent} | RAG_BYPASSED=True | Latency={latency_ms:.1f}ms",
+            chunks=[],
+        )
 
     # ── Response Cache Lookup ──────────────────────────────────────────────────────────
     # Read from cache only when there is no active session — with a session_id

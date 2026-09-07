@@ -415,6 +415,29 @@ async def generate_mcqs(request: MCQGenerateRequest):
         prompt_content = f"Source: Uploaded PDF Document ({request.pdf_name}){topic_suffix}\n\nDocument Content:\n{sampled_content}"
     else:
         prompt_content = f"Subject: {request.subject}\nTopic: {request.topic}"
+        # ── Query Qdrant RAG vector database for ingested PDFs (History / Anthropology) ──
+        try:
+            from app.retrieval.retrieval_router import route_and_retrieve
+            search_query = f"{request.subject} {request.topic}".strip()
+            subj_lower = (request.subject or "").lower()
+            cls_name = "Anthropology" if "anthro" in subj_lower else "History"
+            classifier_result = {
+                "classification": cls_name,
+                "confidence": 0.95,
+                "all_scores": {cls_name: 0.95}
+            }
+            rag_res = route_and_retrieve(search_query, classifier_result=classifier_result, top_k=8)
+            chunks = rag_res.get("chunks", [])
+            if chunks:
+                chunk_texts = "\n\n".join([f"Source Chunk ({c.get('metadata', {}).get('source', 'Ingested PDF')}): {c.get('text', '')}" for c in chunks if c.get('text')])
+                if len(chunk_texts.strip()) > 50:
+                    prompt_content = (
+                        f"Subject: {request.subject}\nTopic: {request.topic}\n\n"
+                        f"Ingested PDF Text Context from RAG Knowledge Base ({cls_name} Collection):\n{chunk_texts[:14000]}"
+                    )
+                    logger.info(f"[MCQ] Retrieved {len(chunks)} RAG chunks from {cls_name} collection for MCQ generation.")
+        except Exception as exc:
+            logger.warning(f"[MCQ] RAG vector retrieval fallback for MCQ generation: {exc}")
 
     system_prompt = (
         f"You are a senior UPSC Civil Services Examination (CSE) question setter.\n"

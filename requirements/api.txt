@@ -18,3 +18,8 @@ apscheduler>=3.10.4
 # News scraper (news_scraper_service.py)
 requests>=2.31.0
 beautifulsoup4>=4.12.0
+
+# News Search Engine (news_search_engine.py — Tavily + Serper)
+# Tavily: https://tavily.com — primary news search API (topic="news", returns full content)
+# Serper: https://serper.dev — Google News API fallback (uses standard requests, no extra package)
+tavily-python>=0.3.0

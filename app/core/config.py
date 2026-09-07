@@ -52,6 +52,13 @@ GEMINI_MODEL:   str = "gemini-3.5-flash"
 GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
 GROQ_MODEL:   str = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 
+# ── News Search Engine API Keys (Tavily + Serper) ─────────────────────────────
+# Tavily: https://tavily.com (free tier: 1000 req/month)
+# Serper: https://serper.dev (free tier: 2500 req/month)
+# If both are empty, falls back to legacy DDG + SearXNG + Bing pipeline.
+TAVILY_API_KEY: str = os.environ.get("TAVILY_API_KEY", "")
+SERPER_API_KEY: str = os.environ.get("SERPER_API_KEY", "")
+
 
 # ── Retrieval Layer ────────────────────────────────────────────────────────────
 # Confidence thresholds for routing (see retrieval_layer_query_classification.md)
@@ -118,22 +125,34 @@ RESPONSE_CACHE_SQLITE_PATH: Path = Path(
 # ── Parallel Search ────────────────────────────────────────────────────────────
 # Number of concurrent workers for parallel DuckDuckGo + SearXNG search calls
 SEARCH_WORKER_COUNT: int = int(os.environ.get("SEARCH_WORKER_COUNT", "4"))
-# Comma-separated trusted site domains used for UPSC current-affairs filtering
+# Comma-separated trusted site domains used for UPSC current-affairs filtering.
+# Narrowed to strictly target Daily News pipeline primary sources:
+#   - The Hindu + PIB (the two main daily scraper sources)
+#   - Key Indian mainstream news outlets for freshness
+#   - Core UPSC coaching/reference portals for exam-focused content
 TRUSTED_SITES: list[str] = [
     s.strip()
     for s in os.environ.get(
         "TRUSTED_SITES",
+        # ── Primary Daily News Sources (mirrors news_scraper_service.py) ──────
+        "thehindu.com,"
+        "pib.gov.in,"
+        # ── Mainstream Indian News Outlets ────────────────────────────────────
+        "indianexpress.com,"
+        "livemint.com,"
+        "businessstandard.com,"
+        "ndtv.com,"
+        "timesofindia.indiatimes.com,"
+        "thewire.in,"
+        "scroll.in,"
         # ── Government & Legislative ──────────────────────────────────────────
-        "pib.gov.in,prsindia.org,gov.in,nic.in,"
-        # ── UPSC Coaching Portals ─────────────────────────────────────────────
-        "insightsias.com,civilsdaily.com,iasbaba.com,drishtiias.com,"
-        "vajiramandravi.com,clearias.com,byjus.com,gktoday.in,"
-        "unacademy.com,jagranjosh.com,"
-        # ── Reputable Indian News (added for current affairs freshness) ───────
-        "thehindu.com,indianexpress.com,livemint.com,businessstandard.com,"
-        "ndtv.com,timesofindia.indiatimes.com,thewire.in,scroll.in,"
-        # ── Reference ─────────────────────────────────────────────────────────
-        "wikipedia.org",
+        "prsindia.org,"
+        # ── Core UPSC Coaching Portals ────────────────────────────────────────
+        "insightsias.com,"
+        "insightsonindia.com,"
+        "drishtiias.com,"
+        "iasbaba.com,"
+        "civilsdaily.com",
     ).split(",")
     if s.strip()
 ]

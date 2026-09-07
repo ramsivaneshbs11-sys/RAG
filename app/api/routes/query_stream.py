@@ -19,6 +19,7 @@ Event format (text/event-stream):
 import json
 import logging
 import asyncio
+import time
 from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Request, Depends
@@ -28,6 +29,7 @@ from sqlalchemy.orm import Session
 
 from app.retrieval.query_classifier     import classify_query
 from app.retrieval.retrieval_router     import route_and_retrieve
+from app.retrieval.intent_router        import classify_intent, GREETING, CASUAL, OUT_OF_SCOPE, ROUTE_DIRECT
 from app.retrieval.generator            import (
     generate_grounded_answer,
     get_session_history,
@@ -47,7 +49,7 @@ router = APIRouter(prefix="/api/v1", tags=["query-stream"])
 # ── Request schema (same as QueryRequest) ─────────────────────────────────────
 
 class StreamQueryRequest(BaseModel):
-    query: str = Field(..., min_length=3, max_length=1000)
+    query: str = Field(..., min_length=1, max_length=1000)
     top_k: Optional[int] = Field(default=None, ge=1, le=50)
     mode: str = Field(default="prelims")
     sub_mode: Optional[str] = Field(default="summary")
@@ -81,6 +83,44 @@ async def _stream_pipeline(
     so the event loop is never blocked and SSE events are delivered immediately.
     """
 
+    t_start = time.perf_counter()
+
+    # ── Pre-RAG Intent Router ─────────────────────────────────────────────────
+    # Runs BEFORE embedding, Qdrant, reranker, web search, and LLM.
+    # Greetings and casual queries are answered instantly from static templates.
+    intent_result = classify_intent(query)
+    if intent_result.rag_bypassed:
+        latency_ms = (time.perf_counter() - t_start) * 1000
+        yield _progress("intent", f"👋 Detected {intent_result.intent} — responding directly...")
+        yield _sse({
+            "type": "result",
+            "payload": {
+                "query":            query,
+                "mode":             mode,
+                "sub_mode":         sub_mode,
+                "classification":   intent_result.intent,
+                "confidence":       intent_result.confidence,
+                "all_scores":       {},
+                "routing":          ROUTE_DIRECT,
+                "total_candidates": 0,
+                "answer":           intent_result.direct_response,
+                "answered":         True,
+                "citations":        [],
+                "rich_citations":   [],
+                "gated":            False,
+                "gate_reason":      None,
+                "cache_hit":        False,
+                "intent":           intent_result.intent,
+                "route":            ROUTE_DIRECT,
+                "rag_bypassed":     True,
+                "latency_ms":       round(latency_ms, 2),
+                "log_info":         f"Intent={intent_result.intent} | RAG_BYPASSED=True | Latency={latency_ms:.1f}ms",
+                "chunks":           [],
+            },
+        })
+        yield _sse({"type": "done"})
+        return
+
     # ── Cache Fast-Path ───────────────────────────────────────────────────────
     # Read from cache ONLY when there is no active session.
     # With a session_id, the user may be asking follow-up questions like
@@ -92,6 +132,10 @@ async def _stream_pipeline(
         cached = await asyncio.to_thread(get_response, query, mode, sub_mode=sub_mode)
         if cached is not None:
             cached["cache_hit"] = True
+            cached.setdefault("intent", "KNOWLEDGE")
+            cached.setdefault("route", "RAG")
+            cached.setdefault("rag_bypassed", False)
+            cached.setdefault("latency_ms", 0.0)
             logger.info(f"[STREAM] Cache HIT — short-circuiting pipeline for: '{query[:60]}'")
             yield _progress("cache", "⚡ Serving answer from cache instantly...")
             yield _sse({"type": "result", "payload": cached})
@@ -216,6 +260,7 @@ async def _stream_pipeline(
     else:
         log_info += " [Result: Answer successfully generated.]"
 
+    latency_ms = (time.perf_counter() - t_start) * 1000
     result_payload = {
         "query":            query,
         "mode":             generation.get("mode", mode),
@@ -232,6 +277,10 @@ async def _stream_pipeline(
         "gated":            generation.get("gated", False),
         "gate_reason":      generation.get("gate_reason"),
         "cache_hit":        False,
+        "intent":           intent_result.intent,
+        "route":            routing,
+        "rag_bypassed":     False,
+        "latency_ms":       round(latency_ms, 2),
         "log_info":         log_info,
         "chunks": [
             {

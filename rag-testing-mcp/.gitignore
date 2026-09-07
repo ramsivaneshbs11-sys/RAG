@@ -1,0 +1,25 @@
+# Environments & Secrets
+.env
+venv/
+.venv/
+ENV/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Evaluation results (generated at runtime)
+evaluation/results/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs & Cache
+cache/
+logs/
+*.log

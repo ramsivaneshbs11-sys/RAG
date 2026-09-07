@@ -14,28 +14,36 @@ DELETE /api/v1/daily-news/cleanup — Remove old data
 Data is read from ram_chatbot-main/backend/data/daily_news.json.
 """
 from fastapi import APIRouter, HTTPException, Query
-import json, os
+import json, os, logging
 from datetime import datetime, timedelta
 from typing import Optional
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["daily-news"])
 
 # ── JSON DB path — resolves to ram_chatbot-main/backend/data/daily_news.json ──
 _THIS_FILE = Path(__file__).resolve()
+# RAG-main root is 3 levels up from app/api/routes/news.py
+_RAG_MAIN_ROOT = _THIS_FILE.parents[3]   # c:\...\RAG-main\RAG-main
+_REPO_ROOT     = _THIS_FILE.parents[4]   # c:\...\RAG-main
+
+# Unified daily_news.json path — ram_chatbot-main/backend/data/ is the canonical location
 _CANDIDATE_PATHS = [
-    _THIS_FILE.parents[4] / "ram_chatbot-main" / "backend" / "data" / "daily_news.json",
-    _THIS_FILE.parents[3] / "ram_chatbot-main" / "backend" / "data" / "daily_news.json",
-    _THIS_FILE.parents[5] / "ram_chatbot-main" / "backend" / "data" / "daily_news.json",
+    _REPO_ROOT     / "ram_chatbot-main" / "backend" / "data" / "daily_news.json",  # primary
+    _RAG_MAIN_ROOT / "backend"          / "data"    / "daily_news.json",            # local fallback
     Path(r"C:\Users\vishn\Downloads\RAG-main\ram_chatbot-main\backend\data\daily_news.json"),
-    _THIS_FILE.parents[3] / "data" / "daily_news.json",
 ]
+
+# Correct pipeline directory: RAG-main/pipeline/ (not ram_chatbot-main/pipeline/)
+_PIPELINE_DIR = _RAG_MAIN_ROOT / "pipeline"
 
 
 def _get_json_db_path() -> str:
     for p in _CANDIDATE_PATHS:
         if p.exists():
             return str(p)
+    # Default: create in primary location
     return str(_CANDIDATE_PATHS[0])
 
 
@@ -168,9 +176,16 @@ async def get_article(article_id: str):
 @router.post("/daily-news/run-pipeline")
 async def run_pipeline_now():
     try:
-        from app.services.news_scraper_service import run_daily_news_scraper
-        await run_daily_news_scraper()
-        return {"status": "success", "message": "News pipeline triggered successfully."}
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+        from app.services.news_scraper_service import sync_all_daily_news
+
+        # Run dual sync (Qdrant + JSON DB) in background thread so API doesn't block
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as pool:
+            await loop.run_in_executor(pool, sync_all_daily_news)
+
+        return {"status": "success", "message": "News pipeline triggered and synced successfully."}
     except Exception as e:
         raise HTTPException(500, f"Pipeline error: {str(e)}")
 

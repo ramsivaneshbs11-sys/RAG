@@ -246,3 +246,65 @@ timestamp,query,mode,stage,latency_ms,input_tokens,output_tokens,provider,routin
 2026-09-01T10:06:51.160573+00:00,How did Nehru view differ from Gandhi regarding the Indian village?,prelims,gen,11845.45,1851,223,gemini,n/a
 2026-09-01T10:07:59.901241+00:00,What was M.N. Srinivas's perspective on the importance of village studies in Ind,prelims,gen,9635.01,2489,32,gemini,n/a
 2026-09-01T10:10:03.112674+00:00,What was M.N. Srinivas's perspective on the importance of village studies in Ind,prelims,gen,12472.17,1920,398,gemini,n/a
+2026-09-02T05:45:52.028549+00:00,What is cultural ecology?,prelims,gen,1738.07,2505,79,groq,n/a
+2026-09-02T05:46:18.131945+00:00,What are the similarities between human DNA and other vertebrates DNA?,prelims,gen,2690.52,2599,146,groq,n/a
+2026-09-02T05:46:31.757960+00:00,Explain the major features of the Indus Valley Civilization urban planning.,mains,gen,14198.58,2881,456,gemini,n/a
+2026-09-02T05:46:33.817474+00:00,Discuss the significance of the Non-Cooperation Movement in India's freedom stru,mains,gen,16258.84,2680,530,gemini,n/a
+2026-09-02T05:46:34.654250+00:00,Explain the concept of brachiation in primates.,prelims,gen,13021.14,2764,32,gemini,n/a
+2026-09-02T05:46:38.450766+00:00,What are the fundamental rights guaranteed by the Indian Constitution?,prelims,gen,18722.39,2898,440,gemini,n/a
+2026-09-02T05:46:47.470973+00:00,What is the Green Revolution and its impact on Indian agriculture?,prelims,gen,2571.72,2297,217,groq,n/a
+2026-09-02T05:46:51.992882+00:00,Describe the concept of social stratification from an anthropological perspectiv,prelims,gen,15190.75,2547,478,gemini,n/a
+2026-09-02T05:46:56.292550+00:00,What were the causes and consequences of the Revolt of 1857?,mains,gen,16318.11,2364,479,gemini,n/a
+2026-09-02T05:47:11.500427+00:00,What is the significance of the 73rd and 74th Constitutional Amendments?,mains,gen,36326.2,2654,340,gemini,n/a
+2026-09-02T06:01:20.219873+00:00,similarities between human DNA and other vertebrates,prelims,gen,2292.81,1754,127,groq,n/a
+2026-09-02T06:01:20.489652+00:00,similarities between human DNA and other vertebrates,prelims,gen,2276.13,1754,110,groq,n/a
+2026-09-02T06:01:20.818654+00:00,Indus Valley Civilization urban planning,prelims,gen,2709.12,1982,214,groq,n/a
+2026-09-02T06:03:37.392778+00:00,What is ecology?,prelims,gen,1739.59,817,63,groq,n/a
+2026-09-02T06:03:41.201256+00:00,fundamental rights guaranteed by Indian Constitution,prelims,gen,4243.77,2026,200,groq,n/a
+2026-09-02T06:03:52.809393+00:00,fundamental rights guaranteed by Indian Constitution,prelims,gen,2727.81,2026,159,groq,n/a
+2026-09-02T06:04:08.960321+00:00,Non-Cooperation Movement India freedom struggle,mains,gen,18879.22,1546,497,gemini,n/a
+2026-09-02T06:04:09.771421+00:00,What is Julian Steward's contribution to cultural ecology?,prelims,gen,16550.61,3052,416,gemini,n/a
+2026-09-02T06:04:10.971766+00:00,Explain the concept of unilinear cultural evolution in anthropology.,prelims,gen,17752.74,2735,497,gemini,n/a
+2026-09-02T06:04:13.660600+00:00,brachiation in primates,prelims,gen,1997.93,1682,146,groq,n/a
+2026-09-02T06:04:32.824627+00:00,73rd and 74th Constitutional Amendments significance,prelims,gen,12846.06,1849,153,gemini,n/a
+2026-09-02T06:08:59.851307+00:00,social stratification anthropological perspective,prelims,gen,2820.31,1800,246,groq,n/a
+2026-09-02T06:09:09.579697+00:00,social stratification anthropological perspective,prelims,gen,11361.4,1800,32,gemini,n/a
+2026-09-02T06:09:15.131887+00:00,causes consequences Revolt of 1857,mains,gen,17797.79,1143,522,gemini,n/a
+2026-09-02T06:09:16.533390+00:00,Green Revolution impact Indian agriculture,prelims,gen,18236.07,1875,355,gemini,n/a
+2026-09-02T06:09:17.623392+00:00,causes consequences Revolt of 1857,mains,gen,20593.7,1143,478,gemini,n/a
+2026-09-02T06:43:30.743309+00:00,What are the similarities between human DNA and vertebrates?,prelims,gen,2553.15,1681,216,groq,n/a
+2026-09-02T08:44:20.002554+00:00,what is salt satyagraha?,prelims,gen,3473.04,5982,144,groq,n/a
+2026-09-02T09:12:50.185129+00:00,What is cultural ecology?,prelims,gen,2016.65,4188,68,groq,n/a
+2026-09-02T09:13:00.512013+00:00,What is cultural ecology?,prelims,gen,12349.46,4188,385,gemini,n/a
+2026-09-02T09:13:00.778518+00:00,What is cultural ecology?,prelims,gen,12599.35,4840,300,gemini,n/a
+2026-09-02T09:13:05.026493+00:00,Mention the beginning of Iron Age in Europe?,mains,gen,16862.2,4964,534,gemini,n/a
+2026-09-02T09:14:02.734390+00:00,What is cultural ecology?,prelims,gen,2554.89,5136,208,groq,n/a
+2026-09-02T09:15:41.466403+00:00,What is cultural ecology?,prelims,gen,10006.62,4971,350,gemini,n/a
+2026-09-02T09:15:45.097840+00:00,Distinguish nomadism from pastoral nomadism,mains,gen,17056.11,6933,487,gemini,n/a
+2026-09-02T09:16:12.624888+00:00,What is cultural ecology?,prelims,gen,3066.82,5342,195,groq,n/a
+2026-09-02T09:17:14.183930+00:00,What is cultural ecology?,prelims,gen,2388.9,4783,147,groq,n/a
+2026-09-02T09:17:48.620956+00:00,Distinguish between nomadism and pastoral-nomadism,mains,gen,3490.29,6842,465,groq,n/a
+2026-09-02T09:18:50.516969+00:00,What is cultural ecology?,prelims,gen,2447.65,4665,137,groq,n/a
+2026-09-02T09:19:02.121983+00:00,What were the specific features of nomadic empires?,mains,gen,13423.89,6408,452,gemini,n/a
+2026-09-02T09:19:55.607359+00:00,What is cultural ecology?,prelims,gen,2812.5,4437,92,groq,n/a
+2026-09-02T09:23:00.735450+00:00,Who were the Bedouins?,mains,gen,2904.01,5463,465,groq,n/a
+2026-09-02T09:29:14.164852+00:00,Bedouins nomadic pastoralism social formations,mains,gen,3385.63,3034,460,groq,n/a
+2026-09-02T09:30:03.940036+00:00,List five minor powers in north India at the beginning of 4th century CE,mains,gen,3516.05,7200,79,groq,n/a
+2026-09-02T09:32:01.539153+00:00,Write ten lines on the kind of cities which are referred to in the contemporary ,mains,gen,2801.07,7099,403,groq,n/a
+2026-09-02T10:07:37.585859+00:00,give me some content on anthropology,prelims,gen,3153.07,3788,281,groq,n/a
+2026-09-02T10:20:07.830277+00:00,give me some content on anthropology,mains,gen,4001.97,4103,516,groq,n/a
+2026-09-02T10:21:06.342760+00:00,explain anthropology,mains,gen,16618.34,6237,367,gemini,n/a
+2026-09-02T11:18:31.662763+00:00,from daily news today news?,current_affairs,gen,3276.11,4582,364,groq,n/a
+2026-09-02T11:19:34.746805+00:00,today's trending news?,current_affairs,gen,23161.46,4422,439,gemini,n/a
+2026-09-03T04:36:35.063645+00:00,India Pakistan ceasefire September 2026 latest news,current_affairs,gen,1719.34,1562,28,groq,n/a
+2026-09-03T04:38:34.206784+00:00,ISRO Gaganyaan latest update today,current_affairs,gen,4254.23,965,177,groq,n/a
+2026-09-03T04:41:16.606759+00:00,ISRO Gaganyaan mission update 2026,current_affairs,gen,2398.45,905,167,groq,n/a
+2026-09-03T04:53:58.279796+00:00,Supreme Court seeks explanation from government on IPS deputation in CAPFs,current_affairs,gen,21148.36,2893,376,gemini,n/a
+2026-09-03T05:01:36.110359+00:00,Supreme Court IPS deputation to CAPF judgment Home Secretary Govind Mohan,current_affairs,gen,3057.05,1488,342,groq,n/a
+2026-09-03T05:02:39.940260+00:00,West Asia conflict updates: Iran blacklists more ships trying to sail through Ho,current_affairs,gen,2957.39,2967,257,groq,n/a
+2026-09-07T05:16:51.897090+00:00,latest news ?,current_affairs,gen,16493.6,3085,367,gemini,n/a
+2026-09-07T05:18:18.843328+00:00,in India latest news?,current_affairs,gen,26689.48,4581,245,gemini,n/a
+2026-09-07T05:19:39.575216+00:00,todays latest news in India?,current_affairs,gen,22958.09,4783,253,gemini,n/a
+2026-09-07T05:20:47.016923+00:00,todays current affairs in India,current_affairs,gen,21346.4,5005,236,gemini,n/a
+2026-09-07T05:24:44.674730+00:00,i need a todays Current affairs ??,current_affairs,gen,19386.61,4865,236,gemini,n/a
+2026-09-07T05:36:40.947675+00:00,"If a passport is not proof of citizenship, then what is? Explained",current_affairs,gen,30987.22,2855,343,gemini,n/a

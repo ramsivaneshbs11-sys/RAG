@@ -1,0 +1,85 @@
+[
+  {
+    "id": "q001",
+    "question": "What are the similarities between human DNA and other vertebrates DNA?",
+    "mode": "prelims",
+    "reference_answer": "Human DNA shares approximately 3.1% similarity with other vertebrates, indicating common evolutionary ancestry.",
+    "expected_sources": [
+      "145752353628ET",
+      "1508923581Quadrant1",
+      "1508923499Quadrant1"
+    ]
+  },
+  {
+    "id": "q002",
+    "question": "What is cultural ecology?",
+    "mode": "prelims",
+    "reference_answer": "Cultural ecology is the study of how human societies adapt to and modify their natural environments through cultural means, emphasising the relationship between culture and environment."
+  },
+  {
+    "id": "q003",
+    "question": "Explain the major features of the Indus Valley Civilization urban planning.",
+    "mode": "mains",
+    "reference_answer": "The Indus Valley Civilization demonstrated advanced town planning with grid-pattern streets, standardised brick sizes, sophisticated drainage systems, and multi-room residential structures."
+  },
+  {
+    "id": "q004",
+    "question": "What are the fundamental rights guaranteed by the Indian Constitution?",
+    "mode": "prelims",
+    "reference_answer": "Fundamental rights include Right to Equality (Art.14-18), Right to Freedom (Art.19-22), Right against Exploitation (Art.23-24), Right to Freedom of Religion (Art.25-28), Cultural and Educational Rights (Art.29-30), and Right to Constitutional Remedies (Art.32)."
+  },
+  {
+    "id": "q005",
+    "question": "Discuss the significance of the Non-Cooperation Movement in India's freedom struggle.",
+    "mode": "mains",
+    "reference_answer": "The Non-Cooperation Movement (1920-22) launched by Mahatma Gandhi was the first mass movement for independence. It united diverse sections of society and established non-violence as a political weapon against British rule."
+  },
+  {
+    "id": "q006",
+    "question": "Explain the concept of unilinear cultural evolution in anthropology.",
+    "mode": "prelims",
+    "reference_answer": "Unilinear cultural evolution was proposed by Lewis H. Morgan. It posited that all cultures evolve through three progressive stages: savagery (hunting-gathering), barbarism (pastoralism/agriculture), and civilization.",
+    "expected_sources": [
+      "2f8d7921-b28e-43ef-ba58-9652e3f0eb13"
+    ]
+  },
+  {
+    "id": "q007",
+    "question": "What is Julian Steward's contribution to cultural ecology?",
+    "mode": "prelims",
+    "reference_answer": "Julian Steward developed the concept of cultural ecology, emphasising the two-way dynamic relationship between culture and environment, and distinguishing cultural ecology from biological ecology. His Theory of Culture Change (1955) is foundational.",
+    "expected_sources": [
+      "fd99442d-90a4-4070-9fed-0559923fc7a2"
+    ]
+  },
+  {
+    "id": "q008",
+    "question": "What is the significance of the 73rd and 74th Constitutional Amendments?",
+    "mode": "mains",
+    "reference_answer": "The 73rd and 74th Constitutional Amendments (1992) provided constitutional status to Panchayati Raj Institutions and Urban Local Bodies respectively, strengthening grassroots democracy through devolution of power."
+  },
+  {
+    "id": "q009",
+    "question": "Recent Supreme Court judgment on Electoral Bonds",
+    "mode": "current_affairs",
+    "sub_mode": "summary"
+  },
+  {
+    "id": "q010",
+    "question": "Describe the concept of social stratification from an anthropological perspective.",
+    "mode": "prelims",
+    "reference_answer": "Social stratification refers to the hierarchical arrangement of individuals into divisions of power, status, and wealth within a society. Anthropologists study it through caste, class, and racial systems."
+  },
+  {
+    "id": "q011",
+    "question": "What were the causes and consequences of the Revolt of 1857?",
+    "mode": "mains",
+    "reference_answer": "The Revolt of 1857 was caused by political, economic, social, religious, and military grievances against the British East India Company. Its consequences included the transfer of power from the Company to the Crown, administrative reorganization, and the beginning of nationalist consciousness."
+  },
+  {
+    "id": "q012",
+    "question": "What is the Green Revolution and its impact on Indian agriculture?",
+    "mode": "prelims",
+    "reference_answer": "The Green Revolution refers to the introduction of high-yielding variety seeds, modern farming techniques, and increased irrigation in India during the 1960s-70s, which dramatically increased food grain production but also led to regional disparities and environmental concerns."
+  }
+]

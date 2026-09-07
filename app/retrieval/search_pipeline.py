@@ -3,14 +3,19 @@ app/retrieval/search_pipeline.py
 ──────────────────────────────────
 Parallel web search pipeline for UPSC Current Affairs queries.
 
-Runs DuckDuckGo (news tab) and SearXNG concurrently using a thread pool,
-merges and deduplicates results by URL, and returns chunk-compatible dicts
-ready for the reranker.
+Search Engine Routing:
+    If TAVILY_API_KEY or SERPER_API_KEY is configured (recommended), parallel_search()
+    delegates to news_search_engine.news_search() which runs Tavily (primary) +
+    Serper (fallback/parallel) concurrently for high-quality structured news results.
 
-Fallback chain:
+    If no API keys are set, falls back to the legacy DDG + SearXNG + Bing HTML
+    scraping pipeline below.
+
+Legacy Fallback chain:
     1. DuckDuckGo (ddgs.news) — primary, free, no key required
     2. SearXNG     — secondary, open-source, public instance
-    3. Empty list  — if both fail (logged as a warning)
+    3. Bing        — tertiary, HTML scraping
+    4. Empty list  — if all fail (logged as a warning)
 
 Site-filtering strategy:
     Queries are prefixed with a site: operator string targeting trusted UPSC
@@ -23,7 +28,7 @@ Article scraping:
 
 Public API:
     parallel_search(user_query: str) -> list[dict]
-        Main entry point. Returns a list of chunk-compatible dicts.
+        Main entry point. Routes to Tavily+Serper or legacy DDG pipeline.
 
     scrape_article(url: str) -> str
         Fetches and parses the full text of a single article URL.
@@ -44,6 +49,8 @@ from app.core.config import (
     SEARCH_WORKER_COUNT,
     SEARXNG_URL,
     TRUSTED_SITES,
+    TAVILY_API_KEY,
+    SERPER_API_KEY,
 )
 from app.retrieval.article_cache import get_article, store_article
 
@@ -436,27 +443,53 @@ def _chunk_article_text(text: str, max_words: int = 250, overlap_words: int = 50
 
 def parallel_search(user_query: str) -> list[dict[str, Any]]:
     """
-    Run DuckDuckGo and SearXNG concurrently, merge + deduplicate results,
-    then scrape full article text for each URL.
+    Main entry point for web search.
+
+    Routing logic:
+        - If TAVILY_API_KEY or SERPER_API_KEY is configured → delegates to
+          news_search_engine.news_search() (Tavily primary + Serper fallback).
+        - Otherwise falls back to legacy DDG + SearXNG + Bing HTML scraping.
 
     Returns a list of chunk-compatible dicts:
         {
-            "chunk_id":  str,       # e.g. "web_001"
+            "chunk_id":  str,       # e.g. "ns_001" (Tavily/Serper) or "web_001" (legacy)
             "text":      str,       # full article text (or title+snippet as fallback)
             "score":     float,     # rank-based relevance score [0, 1]
             "metadata":  {
                 "url":    str,
                 "title":  str,
-                "source": str,      # "duckduckgo" | "searxng"
+                "source": str,      # "tavily" | "serper" | "duckduckgo" | "searxng" | "bing"
             },
             "source":    "web",
         }
 
     Args:
-        user_query: The original user query string. Site filtering is applied internally.
+        user_query: The original user query string.
     """
+    # ── Route to Tavily + Serper engine if API keys are configured ───────────────
+    if TAVILY_API_KEY or SERPER_API_KEY:
+        logger.info(
+            "[SearchPipeline] API keys detected → routing to Tavily+Serper news engine."
+        )
+        from app.retrieval.news_search_engine import news_search
+        results = news_search(user_query)
+        if results:
+            logger.info(
+                f"[SearchPipeline] Tavily+Serper returned {len(results)} chunks. "
+                "Skipping legacy DDG/SearXNG/Bing pipeline."
+            )
+            return results
+        # If both Tavily and Serper returned nothing, fall through to legacy pipeline
+        logger.warning(
+            "[SearchPipeline] Tavily+Serper returned 0 results. "
+            "Falling back to legacy DDG+SearXNG+Bing pipeline."
+        )
+
+    # ── Legacy DDG + SearXNG + Bing fallback ─────────────────────────────────
+    logger.info("[SearchPipeline] Using legacy DDG + SearXNG + Bing pipeline.")
+
     filtered_query = build_site_filtered_query(user_query)
-    cleaned_query = clean_query_for_search(user_query)
+    cleaned_query  = clean_query_for_search(user_query)
 
     # ── Dynamic search query injection ──────────────────────────────────────────
     # If the user has configured only 1 trusted site (e.g. TRUSTED_SITES = ["thehindu.com"]),

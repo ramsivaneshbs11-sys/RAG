@@ -18,6 +18,7 @@ import hashlib
 import logging
 import uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, List, Dict, Optional
 
 import requests
@@ -56,24 +57,35 @@ def _infer_gs_category(title: str, text: str) -> str:
     return "GS-2"
 
 
-def fetch_hindu_links(limit: int = NEWS_MAX_ARTICLES) -> List[str]:
-    """Fetches top breaking and national news URLs from The Hindu."""
-    url = "https://www.thehindu.com/news/"
+HINDU_SECTIONS = [
+    "https://www.thehindu.com/news/national/",
+    "https://www.thehindu.com/news/international/",
+    "https://www.thehindu.com/business/Economy/",
+    "https://www.thehindu.com/sci-tech/science/",
+    "https://www.thehindu.com/sci-tech/energy-and-environment/",
+]
+
+
+def fetch_hindu_links(limit_per_section: int = 4) -> List[str]:
+    """Fetches comprehensive national, international, economy & science news URLs from The Hindu across all 5 sections."""
     links: List[str] = []
-    try:
-        resp = requests.get(url, headers=_HEADERS, timeout=12)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.content, "html.parser")
-            for a in soup.find_all("a", href=True):
-                href = a["href"]
-                if "/news/" in href and href.endswith(".ece"):
-                    full_url = href if href.startswith("http") else f"https://www.thehindu.com{href}"
-                    if full_url not in links:
-                        links.append(full_url)
-                        if len(links) >= limit:
-                            break
-    except Exception as exc:
-        logger.warning(f"NewsScraper: Failed to fetch The Hindu links: {exc}")
+    for section_url in HINDU_SECTIONS:
+        try:
+            resp = requests.get(section_url, headers=_HEADERS, timeout=10)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.content, "html.parser")
+                sec_count = 0
+                for a in soup.find_all("a", href=True):
+                    href = a["href"]
+                    if ("/news/" in href or "/business/" in href or "/sci-tech/" in href or "/article" in href) and (href.endswith(".ece") or "article" in href):
+                        full_url = href if href.startswith("http") else f"https://www.thehindu.com{href}"
+                        if full_url not in links:
+                            links.append(full_url)
+                            sec_count += 1
+                            if sec_count >= limit_per_section:
+                                break
+        except Exception as exc:
+            logger.warning(f"NewsScraper: Failed to fetch section {section_url}: {exc}")
     return links
 
 
@@ -206,21 +218,31 @@ def cleanup_old_news(retention_days: int = NEWS_RETENTION_DAYS) -> int:
         client = get_qdrant_client()
         threshold_date = (datetime.now() - timedelta(days=retention_days)).strftime("%Y-%m-%d")
         
-        # Gap 5 fix: was using MatchValue (exact match) — never deleted anything.
-        # Range(lt=threshold_date) correctly deletes all vectors with date < threshold.
-        result = client.delete(
-            collection_name=CA_NEWS_COLLECTION,
-            points_selector=Filter(
-                must=[
-                    FieldCondition(
-                        key="metadata.date",
-                        range=Range(lt=threshold_date)   # delete all older than threshold
-                    )
-                ]
+        # Scroll and find point IDs older than threshold date
+        offset = None
+        old_point_ids = []
+        while True:
+            records, offset = client.scroll(
+                collection_name=CA_NEWS_COLLECTION,
+                limit=100,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
             )
-        )
-        logger.info(f"NewsScraper: Cleanup completed — removed articles older than {threshold_date}")
-        return 0
+            for record in records:
+                date_str = (record.payload or {}).get("metadata", {}).get("date")
+                if date_str and date_str < threshold_date:
+                    old_point_ids.append(record.id)
+            if offset is None:
+                break
+
+        if old_point_ids:
+            client.delete(
+                collection_name=CA_NEWS_COLLECTION,
+                points_selector=old_point_ids,
+            )
+            logger.info(f"NewsScraper: Cleanup completed — removed {len(old_point_ids)} articles older than {threshold_date}")
+        return len(old_point_ids)
     except Exception as exc:
         logger.warning(f"NewsScraper: Cleanup error (non-fatal): {exc}")
         return 0
@@ -289,3 +311,33 @@ def run_daily_news_scraper() -> Dict[str, Any]:
         "date": datetime.now().strftime("%Y-%m-%d"),
         "status": "success",
     }
+
+
+def sync_all_daily_news(target_date: Optional[str] = None):
+    """
+    Automated dual-sync orchestrator:
+    1. Runs Qdrant vector scraper/upsert (for RAG search)
+    2. Runs pipeline/news_scheduler.py (for frontend Daily News UI)
+    Called automatically by APScheduler every day and on server start.
+    """
+    logger.info("DailyNewsSync: Starting automated dual sync...")
+    try:
+        # 1. Qdrant vector sync
+        run_daily_news_scraper()
+    except Exception as exc:
+        logger.warning(f"DailyNewsSync: Qdrant sync failed (continuing): {exc}")
+
+    try:
+        # 2. JSON database sync for UI
+        # news_scheduler.py lives in RAG-main/pipeline/ (sibling of app/)
+        import sys, importlib
+        pipeline_dir = str(Path(__file__).resolve().parents[2] / "pipeline")
+        if pipeline_dir not in sys.path:
+            sys.path.insert(0, pipeline_dir)
+        news_scheduler = importlib.import_module("news_scheduler")
+        result = news_scheduler.run_pipeline(target_date=target_date)
+        logger.info(f"DailyNewsSync: JSON sync result — {result}")
+        logger.info("DailyNewsSync: Automated dual sync completed successfully ✓")
+    except Exception as exc:
+        logger.warning(f"DailyNewsSync: JSON sync failed: {exc}")
+

@@ -88,23 +88,50 @@ async def lifespan(app: FastAPI):
         f"(enabled={RESPONSE_CACHE_ENABLED}, ttl={RESPONSE_CACHE_TTL_SECONDS}s)"
     )
 
-    # ── Start Daily News Scraper Scheduler (06:00 AM) ─────────────────────
+    # ── Start Daily News Scraper Scheduler & Startup Auto-Catchup ───────────
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
-    from app.services.news_scraper_service import run_daily_news_scraper
-    from app.core.config import NEWS_SCRAPER_CRON_HOUR, NEWS_SCRAPER_CRON_MINUTE
+    from app.services.news_scraper_service import sync_all_daily_news   # ← dual sync: Qdrant + daily_news.json
+    from app.api.routes.news import _load_db
 
+    import sys
+    import asyncio
+    from datetime import datetime
+    from pathlib import Path as _Path
+    _pipeline_dir = str(_Path(__file__).resolve().parent.parent / "pipeline")
+    if _pipeline_dir not in sys.path:
+        sys.path.insert(0, _pipeline_dir)
+
+    # 1. Startup Catch-up: Check if today's news is missing. If so, run background sync.
+    async def _startup_news_catchup():
+        try:
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            db = _load_db()
+            if today_str not in db:
+                logger.info(f"DailyNewsSync: Today's news ({today_str}) not found on startup. Triggering background sync...")
+                # Offload blocking sync to worker thread so server startup remains instant
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, sync_all_daily_news)
+                logger.info(f"DailyNewsSync: Startup background sync for {today_str} completed ✓")
+            else:
+                logger.info(f"DailyNewsSync: Today's news ({today_str}) already present in database ✓")
+        except Exception as exc:
+            logger.warning(f"DailyNewsSync: Startup news catch-up error: {exc}")
+
+    asyncio.create_task(_startup_news_catchup())
+
+    # 2. Automated Multi-Slot Schedule: Runs at 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
-        run_daily_news_scraper,
+        sync_all_daily_news,
         "cron",
-        hour=NEWS_SCRAPER_CRON_HOUR,
-        minute=NEWS_SCRAPER_CRON_MINUTE,
+        hour="6,9,12,15,18,21",
+        minute=0,
         id="daily_news_scraper",
         replace_existing=True,
     )
     scheduler.start()
     logger.info(
-        f"Daily news scraper scheduled at {NEWS_SCRAPER_CRON_HOUR:02d}:{NEWS_SCRAPER_CRON_MINUTE:02d} daily ✓"
+        "Daily news scraper scheduled for automated runs at 06:00, 09:00, 12:00, 15:00, 18:00, 21:00 daily ✓"
     )
 
     yield
