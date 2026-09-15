@@ -563,7 +563,7 @@ def generate_grounded_answer(
         logger.warning(
             f"[Generator] Unknown mode '{mode}' — falling back to 'prelims'."
         )
-        selected_prompt = get_prompt("prelims")
+        selected_prompt = get_prompt("prelims", query=query)
         mode = "prelims"
     prompt = selected_prompt.format(
         context=context_block,

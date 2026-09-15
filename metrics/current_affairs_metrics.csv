@@ -308,3 +308,37 @@ timestamp,query,mode,stage,latency_ms,input_tokens,output_tokens,provider,routin
 2026-09-07T05:20:47.016923+00:00,todays current affairs in India,current_affairs,gen,21346.4,5005,236,gemini,n/a
 2026-09-07T05:24:44.674730+00:00,i need a todays Current affairs ??,current_affairs,gen,19386.61,4865,236,gemini,n/a
 2026-09-07T05:36:40.947675+00:00,"If a passport is not proof of citizenship, then what is? Explained",current_affairs,gen,30987.22,2855,343,gemini,n/a
+2026-09-11T09:35:29.235688+00:00,WHet is salt satyagraha?,prelims,gen,2259.47,1553,148,groq,n/a
+2026-09-11T09:53:40.127369+00:00,What is Linguistic classification ?,prelims,gen,1917.53,4876,69,groq,n/a
+2026-09-11T09:54:31.005557+00:00,What is Linguistic classification ?,mains,gen,3494.44,5529,332,groq,n/a
+2026-09-11T09:59:24.198736+00:00,what did Herbert Risley says about Cast?,prelims,gen,2189.04,5753,85,groq,n/a
+2026-09-11T10:00:11.883040+00:00,What is cultural ecology?,prelims,gen,3079.94,1508,146,groq,n/a
+2026-09-11T10:01:53.742895+00:00,Who are The four chief aims of Purusharthas ?,prelims,gen,1903.46,4770,26,groq,n/a
+2026-09-11T10:04:00.867783+00:00,How many  stages or “ashrams” of life?,prelims,gen,1777.74,3976,17,groq,n/a
+2026-09-11T10:04:49.391882+00:00,Raja Ram Mohan Roy,prelims,gen,3609.64,2626,179,groq,n/a
+2026-09-11T10:05:53.993649+00:00,Dr. Bhimrao Ambedkar,prelims,gen,2735.55,4704,215,groq,n/a
+2026-09-11T10:07:10.240658+00:00,Government Scheme primarily based on Primitive Tribal Groups.,prelims,gen,23830.87,4892,252,gemini,n/a
+2026-09-11T10:10:48.481228+00:00,"During 2003 - 04, How many crore was released to the state government /UTs  admi",prelims,gen,1776.32,4419,16,groq,n/a
+2026-09-12T03:29:44.963288+00:00,Who studied the Kota of Nilgiri Hills (South India) ?,prelims,gen,1643.36,2608,20,groq,n/a
+2026-09-12T06:16:29.725855+00:00,Which aspects of human life did James Frazer deal within his work The Golden Bou,prelims,gen,2285.3,5978,72,groq,n/a
+2026-09-12T06:17:31.562610+00:00,Whichschoolofthoughtbelievedthatthereisonlyoneculturewithacapital C,prelims,gen,11644.02,5663,344,gemini,n/a
+2026-09-12T06:18:36.042217+00:00,LewisHenryMorganrepresentswhichevolutionaryschoolandamongwhich NativeAmericantri,prelims,gen,2376.88,5858,56,groq,n/a
+2026-09-12T06:19:04.309466+00:00,Namethethreeschoolsthat propoundedthetheoryofDiffusion?,prelims,gen,1783.7,4956,60,groq,n/a
+2026-09-12T06:20:30.327799+00:00,Gestalt psychology?,prelims,gen,15563.19,5819,422,gemini,n/a
+2026-09-12T06:21:10.638872+00:00,WhofoundedtheAmericanSchoolofHistoricalParticularism,prelims,gen,1635.2,5783,16,groq,n/a
+2026-09-12T06:22:40.825476+00:00,WhowasinspiredbyE.B.Tylor’stheoryofunilinearevolution,prelims,gen,1915.08,4978,71,groq,n/a
+2026-09-12T06:23:55.693861+00:00,what is comparative method?,prelims,gen,15341.8,4961,429,gemini,n/a
+2026-09-12T06:24:28.967138+00:00,the Gestalt psychologists say?,prelims,gen,2498.96,5952,205,groq,n/a
+2026-09-12T06:25:47.419327+00:00,Who was inspired by E.B.Tylor’s theory ofunilinear evolution,prelims,gen,1987.7,5133,71,groq,n/a
+2026-09-12T06:26:45.606979+00:00,Who is EmileDurkheim?,prelims,gen,33349.28,5460,445,gemini,n/a
+2026-09-12T06:27:06.212736+00:00,Nametheanthropologistwithwhomtheterm‘functionalism’isassociatedwith,prelims,gen,2104.49,5733,19,groq,n/a
+2026-09-12T06:27:30.122472+00:00,Whodefinedtheconcept of‘socialfunction’and‘collectiveconsciousness,prelims,gen,8817.66,5100,71,gemini,n/a
+2026-09-12T06:28:24.376318+00:00,"Which had its origin in the study of languages, particularly in the work of a Fr",prelims,gen,1778.65,5098,48,groq,n/a
+2026-09-12T06:29:01.989768+00:00,Who defined the concept of ‘socialfunction’ and ‘collective consciousness,prelims,gen,2120.67,4671,71,groq,n/a
+2026-09-12T06:30:15.519187+00:00,Whywasthepost-colonialeraimportant inAnthropology?,prelims,gen,18485.56,5032,524,gemini,n/a
+2026-09-12T06:31:17.432743+00:00,Who worked Sex and Temperament in ThreePrimitive Societies?,prelims,gen,2157.45,5103,16,groq,n/a
+2026-09-12T06:33:01.374808+00:00,WhowrotethebookTheRitualProcess?,prelims,gen,1651.34,5942,16,groq,n/a
+2026-09-12T08:26:14.434665+00:00,Which theory was given by Clifford Geertz?Explain,mains,gen,3093.47,6706,423,groq,n/a
+2026-09-12T08:27:35.393895+00:00,todays news,current_affairs,gen,3580.43,3230,359,groq,n/a
+2026-09-12T08:29:17.533185+00:00,what is the date and day today,current_affairs,gen,1618.63,3602,71,groq,n/a
+2026-09-12T08:30:35.824611+00:00,"Sexual consent in India: we’ve learned the vocabulary, but what about the behavi",current_affairs,gen,8726.74,3382,71,gemini,n/a
