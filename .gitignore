@@ -28,9 +28,9 @@ scratch/
 
 # Node / Web Frontend
 node_modules/
-dist/
 .vite/
 build/
+!frontend/dist/
 
 # Document files & page visual renders
 *.pdf
