@@ -31,8 +31,8 @@ import fitz  # PyMuPDF
 
 logger = logging.getLogger("gemini_client")
 
-# gemini-flash-latest: Resolves to the latest stable Flash model (works on all old/new keys and has a high daily quota).
-GEMINI_MODEL = "gemini-flash-latest"
+# gemini-3.8-flash: Latest stable Flash model — best quality, fast, high daily quota.
+GEMINI_MODEL = "gemini-3.8-flash"
 
 # ── Batch settings ─────────────────────────────────────────────────────────────
 MAX_BATCH_PAGES = 5   # pages per API call — sweet-spot for token budget & quality

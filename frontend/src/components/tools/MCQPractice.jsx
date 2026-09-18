@@ -639,7 +639,7 @@ const MCQPractice = () => {
                   <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input
                     type="text"
-                    placeholder="e.g. Polity & Governance, History, Economy, Geography..."
+                    placeholder="e.g. History, Anthropology, Current Affairs..."
                     value={subject}
                     onChange={e => setSubject(e.target.value)}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-[#0f2242] placeholder:text-gray-300 outline-none focus:border-[#0f2242] focus:bg-white transition-all shadow-sm"
@@ -649,10 +649,6 @@ const MCQPractice = () => {
                 <div className="flex flex-wrap gap-1.5 mt-2.5">
                   {[
                     'History',
-                    'Polity & Governance',
-                    'Economy',
-                    'Geography',
-                    'Environment & Ecology',
                     'Anthropology',
                     'Current Affairs'
                   ].map((s) => (

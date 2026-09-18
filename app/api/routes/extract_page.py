@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.core.config import ALLOWED_CLASSIFICATIONS
 from app.database.session import get_db
 from app.services.page_extraction_service import run_gemini_extraction
+from extraction.gemini_client import GEMINI_MODEL as _EXTRACTION_MODEL
 from app.services.ingest_pipeline import run_single_ingest
 
 logger = logging.getLogger(__name__)
@@ -196,7 +197,7 @@ def ingest_folder_gemini(
     return {
         "folder": str(folder),
         "classification": body.classification,
-        "extraction_engine": "gemini-2.5-flash",
+        "extraction_engine": _EXTRACTION_MODEL,
         "total_pdfs": len(pdf_files),
         "results": results,
     }

@@ -46,11 +46,11 @@ EMBEDDING_DIMENSION: int = 768  # Output dimension of BAAI/bge-base-en-v1.5
 
 # ── Gemini (Endpoint 2) ──────────────────────────────────────────────────────────
 GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL:   str = "gemini-3.5-flash"
+GEMINI_MODEL:   str = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 
 # ── Groq API (Alternative Generation Layer) ──────────────────────────────────────
 GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL:   str = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL:   str = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
 # ── News Search Engine API Keys (Tavily + Serper) ─────────────────────────────
 # Tavily: https://tavily.com (free tier: 1000 req/month)

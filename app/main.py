@@ -24,7 +24,8 @@ os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
 
 from fastapi import FastAPI, Response
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -176,15 +177,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Serve UI & Favicon ───────────────────────────────────────────────────────
-@app.get("/", response_class=FileResponse, tags=["UI"])
-def read_root():
-    """Serves the upsc_ui.html frontend interface."""
-    return FileResponse(_WORKSPACE_ROOT / "upsc_ui.html")
+# ── Frontend dist path ───────────────────────────────────────────────────────
+_DIST_DIR = _WORKSPACE_ROOT / "frontend" / "dist"
+_ASSETS_DIR = _DIST_DIR / "assets"
 
+# ── Mount compiled static assets (JS / CSS bundles from `npm run build`) ─────
+# Only mounted when dist exists — safe to run without building frontend first.
+if _ASSETS_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(_ASSETS_DIR)), name="static-assets")
+    logger.info(f"Serving compiled frontend assets from: {_ASSETS_DIR}")
+else:
+    logger.warning(
+        "frontend/dist/assets not found — UI will not be served. "
+        "Run `npm run build` inside the frontend/ directory to enable the React UI."
+    )
+
+# ── Favicon ───────────────────────────────────────────────────────────────────
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
-    """Handles browser favicon requests with 204 No Content to prevent 404 logs."""
+    """Handles browser favicon requests — serves from dist if available."""
+    favicon_path = _DIST_DIR / "favicon.ico"
+    if favicon_path.exists():
+        return FileResponse(str(favicon_path))
     return Response(status_code=204)
 
 # ── Dynamic OpenAPI Fix for Swagger UI File Uploads ──────────────────────────
@@ -237,3 +251,37 @@ app.include_router(admin_route.router)
 @app.get("/health", tags=["health"])
 def health_check():
     return {"status": "ok"}
+
+
+# ── SPA Catch-All: serves React index.html for all non-API browser routes ─────
+# This MUST be registered LAST so API routes always take priority.
+# Handles React Router paths like /home, /chat, /news, /admin etc.
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(full_path: str):
+    """
+    Catch-all route that serves the React SPA.
+
+    Priority logic:
+      1. If the path maps to a real static file inside dist/ (e.g. robots.txt), serve it.
+      2. Otherwise fall back to index.html so React Router handles the path client-side.
+      3. If dist/ does not exist yet (dev mode without a build), return a JSON hint.
+    """
+    if not _DIST_DIR.exists():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": (
+                    "React UI not built yet. "
+                    "Run `npm run build` inside the frontend/ directory, "
+                    "then restart the server."
+                )
+            },
+        )
+
+    # Serve actual files (e.g. robots.txt, manifest.json) if they exist in dist root
+    candidate = _DIST_DIR / full_path
+    if candidate.exists() and candidate.is_file():
+        return FileResponse(str(candidate))
+
+    # For everything else (React routes) → return index.html
+    return FileResponse(str(_DIST_DIR / "index.html"))

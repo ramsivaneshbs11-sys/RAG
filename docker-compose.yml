@@ -1,10 +1,9 @@
 version: '3.8'
 
 services:
-  # ──────────────────────── Qdrant Vector Database ─────────────────────────
-  # Stores collections per classification:
-  #   - history_collection
-  #   - anthropology_collection
+
+  # ──────────────────────────── Qdrant Vector Database ─────────────────────────
+  # Stores all UPSC document embeddings in named collections.
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant_db
@@ -14,6 +13,47 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ──────────────────────────── UPSC RAG Application ───────────────────────────
+  # FastAPI backend + React frontend (built into the image via multi-stage Docker).
+  # Access the full app at http://localhost:8000
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: upsc_rag_app
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env                      # PostgreSQL, Qdrant, API keys, etc.
+    environment:
+      # Override Qdrant host to use the docker-compose service name
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    volumes:
+      # Persist uploaded PDFs and extracted data across container restarts
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+      # Persist the SQLite response cache
+      - app_cache:/app/.cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s          # Give models time to pre-load on first start
 
 volumes:
   qdrant_storage:
+  app_cache:

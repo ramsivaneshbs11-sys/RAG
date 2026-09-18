@@ -4,10 +4,18 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    target: 'es2015',
+    cssCodeSplit: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      }
+    }
+  },
   server: {
     port: 5173,
     proxy: {
-      // Forward all /api requests to the RAG-main FastAPI backend
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
@@ -15,4 +23,5 @@ export default defineConfig({
     },
   },
 })
+
 

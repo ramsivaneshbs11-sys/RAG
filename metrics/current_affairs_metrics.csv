@@ -342,3 +342,9 @@ timestamp,query,mode,stage,latency_ms,input_tokens,output_tokens,provider,routin
 2026-09-12T08:27:35.393895+00:00,todays news,current_affairs,gen,3580.43,3230,359,groq,n/a
 2026-09-12T08:29:17.533185+00:00,what is the date and day today,current_affairs,gen,1618.63,3602,71,groq,n/a
 2026-09-12T08:30:35.824611+00:00,"Sexual consent in India: we’ve learned the vocabulary, but what about the behavi",current_affairs,gen,8726.74,3382,71,gemini,n/a
+2026-09-15T08:01:11.823902+00:00,what is salt satyagraha?,prelims,gen,3065.4,4951,374,groq,n/a
+2026-09-18T04:00:57.340060+00:00,what is social-cultural anthropology?,prelims,gen,50512.39,0,0,n/a,n/a
+2026-09-18T04:10:31.442007+00:00,what is social-cultural anthropology?,prelims,gen,19656.68,0,0,n/a,n/a
+2026-09-18T04:16:44.713351+00:00,what is social-cultural anthropology?,prelims,gen,25773.04,5444,428,gemini,n/a
+2026-09-18T05:23:55.225652+00:00,what is social-cultural anthropology?,prelims,gen,48808.3,6650,535,gemini,n/a
+2026-09-18T05:32:36.337267+00:00,what is social-cultural anthropology?,mains,gen,65657.9,7723,720,gemini,n/a

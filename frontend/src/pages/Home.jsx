@@ -1,11 +1,8 @@
-import React from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import RightSidebar from '../components/layout/RightSidebar';
 import Dashboard from '../components/dashboard/Dashboard';
 import ChatInterface from '../components/tools/ChatInterface';
-import MCQPractice from '../components/tools/MCQPractice';
-import DailyNews from '../components/tools/DailyNews';
-import AdminPanel from '../components/tools/AdminPanel';
 import LoginModal from '../components/auth/LoginModal';
 import BottomNavigation from '../components/layout/BottomNavigation';
 import MobileChat from '../components/tools/MobileChat';
@@ -13,6 +10,10 @@ import MobileProfile from '../components/tools/MobileProfile';
 import { useApp } from '../context/AppContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Trash2, FileText, Edit3 } from 'lucide-react';
+
+const MCQPractice = lazy(() => import('../components/tools/MCQPractice'));
+const DailyNews = lazy(() => import('../components/tools/DailyNews'));
+const AdminPanel = lazy(() => import('../components/tools/AdminPanel'));
 
 const Home = () => {
   const { activeTab, isLoginModalOpen, setIsLoginModalOpen, notes, addNote, deleteNote, updateNote } = useApp();
@@ -191,9 +192,13 @@ const Home = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 min-h-screen overflow-x-hidden">
-        <div className="h-full w-full flex flex-col flex-1 transition-all duration-150">
-          {renderContent()}
-        </div>
+          <Suspense fallback={
+            <div className="flex-1 flex items-center justify-center p-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-upsc-navy"></div>
+            </div>
+          }>
+            {renderContent()}
+          </Suspense>
       </main>
 
       {/* Desktop Right Sidebar (Notes) */}

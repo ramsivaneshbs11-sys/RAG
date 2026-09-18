@@ -499,7 +499,7 @@ async def generate_mcqs(request: MCQGenerateRequest):
     from app.core.config import GROQ_API_KEY, GROQ_MODEL, GEMINI_API_KEY, GEMINI_MODEL
     import requests as req
 
-    groq_models_to_try = [GROQ_MODEL, "openai/gpt-oss-120b", "qwen/qwen3.8-27b", "allam-2-7b"]
+    groq_models_to_try = [GROQ_MODEL, "openai/gpt-oss-120b"]
     # Deduplicate while preserving order
     groq_models = []
     for m in groq_models_to_try:

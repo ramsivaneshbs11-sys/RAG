@@ -12,6 +12,44 @@ echo    [1] Backend  (FastAPI + Hot Reload)  :8000
 echo    [2] Frontend (Vite + HMR)            :5173
 echo    [3] News Pipeline (auto-runs inside backend)
 echo.
+echo  ─────────────────────────────────────────
+echo  [P] Production mode  — builds frontend then
+echo      serves everything from FastAPI :8000 only
+echo      (no Vite, no Node.js at runtime)
+echo  ─────────────────────────────────────────
+echo.
+set /p MODE="  Press [P] for production mode, or ENTER for dev mode: "
+
+if /i "%MODE%"=="P" goto production
+goto dev_mode
+
+:production
+echo.
+echo  [P] Building React frontend for production...
+cd /d %~dp0frontend
+call npm run build
+if errorlevel 1 (
+    echo  [ERROR] npm run build failed! Check frontend errors above.
+    pause
+    exit /b 1
+)
+cd /d %~dp0
+echo  [P] Frontend built successfully. Starting FastAPI only on :8000...
+start "UPSC RAG (Production)" cmd /k "cd /d %~dp0 && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level info"
+echo.
+echo  =========================================
+echo    PRODUCTION MODE — App running at:
+echo    http://localhost:8000
+echo    API Docs: http://localhost:8000/docs
+echo  =========================================
+echo.
+echo  Press any key to open in browser...
+pause >nul
+start http://localhost:8000
+exit /b 0
+
+:dev_mode
+echo.
 
 REM ── Kill anything on ports 8000 and 5173 first ──
 echo  [*] Clearing ports 8000 and 5173...
