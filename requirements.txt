@@ -18,8 +18,9 @@ pdfplumber>=0.10.0
 # rapidocr-onnxruntime — NOT compatible with Python 3.14 (max 3.13), skip
 # onnxruntime>=1.15.0
 
-# Gemini 2.5 Flash (Endpoint 2 extraction engine)
+# Gemini & OpenAI Clients
 google-genai>=1.0.0
+openai>=1.0.0
 
 
 # Preprocessing & Chunking Stage

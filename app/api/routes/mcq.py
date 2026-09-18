@@ -12,7 +12,10 @@ import fitz  # PyMuPDF
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
-import openai
+try:
+    import openai
+except ImportError:
+    openai = None
 
 logger = logging.getLogger(__name__)
 
@@ -558,7 +561,7 @@ async def generate_mcqs(request: MCQGenerateRequest):
 
     # ── Strategy 3: OpenAI API ───────────────────────────────────────────────
     openai_key = os.environ.get("OPENAI_API_KEY", "")
-    if openai_key and not openai_key.startswith("your_"):
+    if openai and openai_key and not openai_key.startswith("your_"):
         try:
             logger.info("[MCQ] Generating questions via OpenAI...")
             client = openai.OpenAI(api_key=openai_key)
