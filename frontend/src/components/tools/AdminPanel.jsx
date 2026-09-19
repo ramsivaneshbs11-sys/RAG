@@ -67,28 +67,19 @@ const AdminPanel = ({ initialTab = 0 }) => {
       </div>
 
       {/* Tab Content */}
-      <AnimatePresence mode="wait">
-        {activeTab === 0 && (
-          <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <DashboardOverview goToTab={setActiveTab} />
-          </motion.div>
-        )}
-        {activeTab === 1 && (
-          <motion.div key="ingestion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <IngestionTab />
-          </motion.div>
-        )}
-        {activeTab === 2 && (
-          <motion.div key="classifications" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <ClassificationTab />
-          </motion.div>
-        )}
-        {activeTab === 3 && (
-          <motion.div key="cache" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <CacheStorageTab />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Tab Content — Preserved in DOM so background upload never breaks on tab switch */}
+      <div className={activeTab === 0 ? "block" : "hidden"}>
+        <DashboardOverview goToTab={setActiveTab} />
+      </div>
+      <div className={activeTab === 1 ? "block" : "hidden"}>
+        <IngestionTab />
+      </div>
+      <div className={activeTab === 2 ? "block" : "hidden"}>
+        <ClassificationTab />
+      </div>
+      <div className={activeTab === 3 ? "block" : "hidden"}>
+        <CacheStorageTab />
+      </div>
     </div>
   );
 };
