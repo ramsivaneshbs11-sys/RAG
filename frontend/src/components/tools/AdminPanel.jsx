@@ -3,12 +3,18 @@ import {
   Upload, FileText, Trash2, Plus, RefreshCw, CheckCircle2,
   AlertCircle, Loader2, Brain, BookOpen, ChevronDown, X, ShieldCheck,
   Database, HardDrive, Zap, BarChart3, LayoutDashboard, Activity,
-  TrendingUp, Newspaper, Server, Play, Trash, RotateCcw, ArrowRight
+  TrendingUp, Newspaper, Server, Play, Trash, RotateCcw, ArrowRight, Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
-const TABS = ['📊 Overview Dashboard', '📤 PDF Ingestion Engine', '📚 Syllabus & Classifications', '🗄️ Cache & Storage'];
+const TABS = [
+  '📊 Overview Dashboard',
+  '📤 PDF Ingestion Engine',
+  '📁 Manage Ingested Documents',
+  '📚 Syllabus & Classifications',
+  '🗄️ Cache & Storage',
+];
 
 // ── Engine configs ─────────────────────────────────────────────────────────────
 const ENGINES = [
@@ -45,7 +51,7 @@ const AdminPanel = ({ initialTab = 0 }) => {
         </div>
         <div>
           <h2 className="text-xl font-black text-[#0f2242]">Admin Control Center</h2>
-          <p className="text-xs text-gray-400 font-medium">Overview Dashboard · PDF Ingestion Engine · Syllabus Manager</p>
+          <p className="text-xs text-gray-400 font-medium">Overview Dashboard · PDF Ingestion Engine · Document Library · Syllabus Manager</p>
         </div>
       </div>
 
@@ -66,7 +72,6 @@ const AdminPanel = ({ initialTab = 0 }) => {
         ))}
       </div>
 
-      {/* Tab Content */}
       {/* Tab Content — Preserved in DOM so background upload never breaks on tab switch */}
       <div className={activeTab === 0 ? "block" : "hidden"}>
         <DashboardOverview goToTab={setActiveTab} />
@@ -75,9 +80,12 @@ const AdminPanel = ({ initialTab = 0 }) => {
         <IngestionTab />
       </div>
       <div className={activeTab === 2 ? "block" : "hidden"}>
-        <ClassificationTab />
+        <DocumentsManagementTab />
       </div>
       <div className={activeTab === 3 ? "block" : "hidden"}>
+        <ClassificationTab />
+      </div>
+      <div className={activeTab === 4 ? "block" : "hidden"}>
         <CacheStorageTab />
       </div>
     </div>
@@ -623,7 +631,215 @@ const IngestionTab = () => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TAB 2 — Classification Manager (Option C)
+// TAB 2 — Document Manager & Vector Deletion
+// ═══════════════════════════════════════════════════════════════════════════════
+const DocumentsManagementTab = () => {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterClass, setFilterClass] = useState('All');
+  const [search, setSearch] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 5000);
+  };
+
+  const fetchDocuments = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/v1/documents');
+      if (res.ok) {
+        const data = await res.json();
+        setDocuments(data.documents || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const handleDelete = async (doc) => {
+    if (!window.confirm(`Permanently delete "${doc.original_filename}"?\n\nThis will remove all associated vector embeddings from Qdrant and delete the file from the server.`)) {
+      return;
+    }
+    setDeletingId(doc.file_id);
+    try {
+      const res = await fetch(`/api/v1/documents/${doc.file_id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`✓ Deleted "${doc.original_filename}" (${data.qdrant_vectors_deleted ?? 0} vectors removed from Qdrant)`);
+        setDocuments(prev => prev.filter(d => d.file_id !== doc.file_id));
+      } else {
+        showToast(`❌ Delete failed: ${data.detail || 'Server error'}`);
+      }
+    } catch (err) {
+      showToast(`❌ Error: ${err.message}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filtered = documents.filter(doc => {
+    const matchesSubject = filterClass === 'All' || doc.classification === filterClass;
+    const matchesSearch = !search.trim() || (doc.original_filename || '').toLowerCase().includes(search.toLowerCase());
+    return matchesSubject && matchesSearch;
+  });
+
+  return (
+    <div className="flex flex-col gap-5 max-w-4xl">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+              toast.startsWith('✓') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
+            {toast.startsWith('✓') ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header & Controls */}
+      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-black text-[#0f2242] flex items-center gap-2">
+            <FileText size={18} className="text-[#0f2242]" />
+            Ingested Documents Library ({documents.length})
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Manage your indexed PDFs. Deleting a document removes its vectors from Qdrant immediately.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchDocuments}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-700 transition-all shadow-sm shrink-0"
+        >
+          <RotateCcw size={14} className={loading ? 'animate-spin' : ''} />
+          Refresh List
+        </button>
+      </div>
+
+      {/* Search & Subject Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search documents by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#0f2242] focus:border-[#0f2242] outline-none"
+          />
+        </div>
+
+        <div className="flex gap-1.5 p-1 bg-gray-100 rounded-xl">
+          {['All', 'Anthropology', 'History'].map(cat => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setFilterClass(cat)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filterClass === cat ? 'bg-white text-[#0f2242] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Documents List */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-gray-200 gap-3">
+          <Loader2 size={24} className="animate-spin text-[#0f2242]" />
+          <p className="text-xs font-bold text-gray-400">Loading ingested documents from database & Qdrant...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-gray-200 gap-2 text-center">
+          <FileText size={32} className="text-gray-300" />
+          <p className="text-xs font-bold text-gray-600">No documents found matching your filter</p>
+          <p className="text-[11px] text-gray-400">Upload new PDFs in the "PDF Ingestion Engine" tab.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {filtered.map((doc) => (
+            <div
+              key={doc.file_id}
+              className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-gray-300 hover:shadow-sm transition-all gap-4"
+            >
+              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-xl bg-[#0f2242]/5 border border-[#0f2242]/10 flex items-center justify-center text-[#0f2242] shrink-0 font-bold">
+                  <FileText size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-bold text-gray-900 truncate" title={doc.original_filename}>
+                      {doc.original_filename}
+                    </p>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                      doc.classification === 'Anthropology'
+                        ? 'bg-purple-50 text-purple-700 border-purple-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                      {doc.classification}
+                    </span>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                      doc.status === 'ingested'
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-red-50 text-red-700'
+                    }`}>
+                      {doc.status === 'ingested' ? '✓ Ingested' : '❌ Failed'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 font-mono mt-1">
+                    ID: {doc.file_id?.slice(0, 8)}... · Added: {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Delete Action Button */}
+              <button
+                type="button"
+                onClick={() => handleDelete(doc)}
+                disabled={deletingId === doc.file_id}
+                className="flex items-center gap-1.5 px-3 py-2 text-red-600 hover:bg-red-50 border border-red-100 hover:border-red-200 rounded-xl text-xs font-bold transition-all disabled:opacity-50 shrink-0"
+                title="Permanently delete document and Qdrant vectors"
+              >
+                {deletingId === doc.file_id ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span className="hidden sm:inline">Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TAB 3 — Classification Manager (Option C)
 // ═══════════════════════════════════════════════════════════════════════════════
 const ClassificationTab = () => {
   const [classifications, setClassifications] = useState([]);
