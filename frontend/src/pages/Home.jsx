@@ -59,8 +59,15 @@ const Home = () => {
       // Admin tabs
       case 'Admin Dashboard':
         return <AdminPanel initialTab={0} />;
+      case 'PDF Ingestion':
       case 'Admin Panel':
         return <AdminPanel initialTab={1} />;
+      case 'Manage Documents':
+        return <AdminPanel initialTab={2} />;
+      case 'Syllabus Manager':
+        return <AdminPanel initialTab={3} />;
+      case 'Cache & Storage':
+        return <AdminPanel initialTab={4} />;
       case 'Quick Notes':
         return (
           <div className="block md:hidden p-6 pb-40">

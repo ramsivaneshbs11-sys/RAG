@@ -1,7 +1,7 @@
 import {
   MessageSquare, CheckSquare, Newspaper,
   LogIn, PanelLeftClose, PanelLeftOpen, ShieldCheck,
-  LayoutDashboard, Upload, BookOpen, HardDrive, BookMarked
+  LayoutDashboard, Upload, BookOpen, HardDrive, BookMarked, FileText
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import Logo from '../Logo';
@@ -17,6 +17,7 @@ const STUDENT_MENU = [
 const ADMIN_MENU = [
   { name: 'Admin Dashboard',    icon: LayoutDashboard, label: 'Dashboard'     },
   { name: 'PDF Ingestion',      icon: Upload,          label: 'Ingest'        },
+  { name: 'Manage Documents',   icon: FileText,        label: 'Documents'     },
   { name: 'Syllabus Manager',   icon: BookOpen,        label: 'Syllabus'      },
   { name: 'Cache & Storage',    icon: HardDrive,       label: 'Cache'         },
 ];
@@ -33,23 +34,10 @@ const Sidebar = () => {
   const menuItems = isAdmin ? ADMIN_MENU : STUDENT_MENU;
 
   const handleTabClick = (name) => {
-    // Map Sidebar item names → AdminPanel internal tabs
-    if (isAdmin) {
-      switch (name) {
-        case 'Admin Dashboard':  setActiveTab('Admin Dashboard'); break;
-        case 'PDF Ingestion':    setActiveTab('Admin Panel');     break;
-        case 'Syllabus Manager': setActiveTab('Admin Panel');     break;
-        case 'Cache & Storage':  setActiveTab('Admin Panel');     break;
-        default:                 setActiveTab(name);
-      }
-    } else {
-      setActiveTab(name);
-    }
+    setActiveTab(name);
   };
 
   const isItemActive = (name) => {
-    if (name === 'Admin Dashboard') return activeTab === 'Admin Dashboard';
-    if (['PDF Ingestion', 'Syllabus Manager', 'Cache & Storage'].includes(name)) return activeTab === 'Admin Panel';
     return activeTab === name;
   };
 

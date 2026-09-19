@@ -42,6 +42,10 @@ const ENGINES = [
 const AdminPanel = ({ initialTab = 0 }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   return (
     <div className="w-full h-full p-4 md:p-6 flex flex-col gap-6 overflow-y-auto">
       {/* Header */}
