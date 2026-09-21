@@ -232,7 +232,7 @@ const MobileChat = () => {
       </header>
 
       {/* Main Content Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto pb-40 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto pb-40 scroll-smooth" style={{ willChange: 'transform', WebkitOverflowScrolling: 'touch' }}>
         {chatHistory.length === 0 ? (
           <div className="px-6 py-8">
             <div className="mb-10">

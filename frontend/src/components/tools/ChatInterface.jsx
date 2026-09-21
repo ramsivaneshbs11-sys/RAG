@@ -193,8 +193,8 @@ const ChatInterface = () => {
   };
 
   return (
-    <div className="w-full h-full p-2 md:p-4 pb-20 md:pb-4 flex flex-col flex-1">
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden flex flex-col flex-1 h-[calc(100vh-3.5rem)]">
+    <div className="w-full h-full p-2 md:p-4 flex flex-col flex-1">
+      <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden flex flex-col flex-1 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)] max-h-[calc(100vh-4.5rem-env(safe-area-inset-bottom))]">
         {/* Chat Header */}
         <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-100 bg-white relative z-20">
           <div className="flex items-center gap-3">
@@ -264,7 +264,7 @@ const ChatInterface = () => {
         </div>
 
         {/* Messages Body */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 bg-gray-50/30">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 bg-gray-50/30" style={{ willChange: 'transform', WebkitOverflowScrolling: 'touch' }}>
           {chatHistory.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto py-12">
               <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mb-4">
