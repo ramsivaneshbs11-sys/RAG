@@ -2,6 +2,26 @@ version: '3.8'
 
 services:
 
+  # ──────────────────────────── PostgreSQL Database ─────────────────────────────
+  # Stores chat sessions, user notes, and document status records.
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: upsc_rag
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d upsc_rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ──────────────────────────── Qdrant Vector Database ─────────────────────────
   # Stores all UPSC document embeddings in named collections.
   qdrant:
@@ -32,12 +52,15 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env                      # PostgreSQL, Qdrant, API keys, etc.
+      - .env                      # API keys & configurations
     environment:
-      # Override Qdrant host to use the docker-compose service name
+      # Use internal docker service names when running inside docker-compose
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/upsc_rag
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
     depends_on:
+      postgres:
+        condition: service_healthy
       qdrant:
         condition: service_healthy
     volumes:
@@ -55,5 +78,6 @@ services:
       start_period: 60s          # Give models time to pre-load on first start
 
 volumes:
+  postgres_data:
   qdrant_storage:
   app_cache:
