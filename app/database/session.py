@@ -12,10 +12,21 @@ class Base(DeclarativeBase):
 
 # ── Engine with Automatic SQLite Fallback ──────────────────────────────────
 def _create_resilient_engine():
+    # If explicitly set to SQLite or left empty, use SQLite directly with zero delay
+    if not DATABASE_URL or DATABASE_URL.startswith("sqlite"):
+        sqlite_path = BASE_DIR / "data" / "upsc_rag.db"
+        sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"[Database] Using local SQLite database at {sqlite_path}.")
+        return create_engine(
+            f"sqlite:///{sqlite_path}",
+            connect_args={"check_same_thread": False},
+        )
+
     try:
         eng = create_engine(
             DATABASE_URL,
             pool_pre_ping=True,   # detect stale connections
+            connect_args={"connect_timeout": 2},
         )
         with eng.connect() as conn:
             conn.execute(text("SELECT 1"))
