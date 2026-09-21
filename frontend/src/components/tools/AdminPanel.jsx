@@ -643,6 +643,8 @@ const DocumentsManagementTab = () => {
   const [filterClass, setFilterClass] = useState('All');
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [retryingId, setRetryingId] = useState(null);
+  const [retryingAll, setRetryingAll] = useState(false);
   const [toast, setToast] = useState('');
 
   const showToast = (msg) => {
@@ -690,6 +692,44 @@ const DocumentsManagementTab = () => {
     }
   };
 
+  const handleRetrySingle = async (doc) => {
+    setRetryingId(doc.file_id);
+    try {
+      const res = await fetch(`/api/v1/documents/${doc.file_id}/retry`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`✓ Recovered "${doc.original_filename}" (${data.vectors_upserted ?? 0} vectors upserted into Qdrant)`);
+        fetchDocuments();
+      } else {
+        showToast(`❌ Retry failed: ${data.detail || 'Server error'}`);
+      }
+    } catch (err) {
+      showToast(`❌ Retry error: ${err.message}`);
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  const handleRetryAll = async () => {
+    setRetryingAll(true);
+    try {
+      const res = await fetch('/api/v1/documents/retry-failed', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`✓ Retry complete: ${data.recovered ?? 0} recovered, ${data.still_failed ?? 0} failed.`);
+        fetchDocuments();
+      } else {
+        showToast(`❌ Bulk retry failed: ${data.detail || 'Server error'}`);
+      }
+    } catch (err) {
+      showToast(`❌ Error: ${err.message}`);
+    } finally {
+      setRetryingAll(false);
+    }
+  };
+
+  const failedDocs = documents.filter(d => d.status === 'failed');
+
   const filtered = documents.filter(doc => {
     const matchesSubject = filterClass === 'All' || doc.classification === filterClass;
     const matchesSearch = !search.trim() || (doc.original_filename || '').toLowerCase().includes(search.toLowerCase());
@@ -712,6 +752,34 @@ const DocumentsManagementTab = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Failed Ingestions Alert Banner */}
+      {failedDocs.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-2xl gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-900">
+                {failedDocs.length} document{failedDocs.length > 1 ? 's' : ''} encountered ingestion issues
+              </p>
+              <p className="text-[11px] text-amber-700">
+                Resume embedding directly from disk or re-extract without uploading PDFs again.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRetryAll}
+            disabled={retryingAll}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 disabled:opacity-50 active:scale-95"
+          >
+            <RotateCcw size={14} className={retryingAll ? 'animate-spin' : ''} />
+            <span>{retryingAll ? 'Retrying Ingestions...' : '⚡ Retry All Failed'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Header & Controls */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -811,29 +879,60 @@ const DocumentsManagementTab = () => {
                   <p className="text-[10px] text-gray-400 font-mono mt-1">
                     ID: {doc.file_id?.slice(0, 8)}... · Added: {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '—'}
                   </p>
+                  {doc.status === 'failed' && doc.error_message && (
+                    <p className="text-[10px] text-red-600 font-medium mt-0.5 truncate max-w-md" title={doc.error_message}>
+                      Reason: {doc.error_message}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Delete Action Button */}
-              <button
-                type="button"
-                onClick={() => handleDelete(doc)}
-                disabled={deletingId === doc.file_id}
-                className="flex items-center gap-1.5 px-3 py-2 text-red-600 hover:bg-red-50 border border-red-100 hover:border-red-200 rounded-xl text-xs font-bold transition-all disabled:opacity-50 shrink-0"
-                title="Permanently delete document and Qdrant vectors"
-              >
-                {deletingId === doc.file_id ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={14} />
-                    <span className="hidden sm:inline">Delete</span>
-                  </>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Retry Button if Failed */}
+                {doc.status === 'failed' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRetrySingle(doc)}
+                    disabled={retryingId === doc.file_id || deletingId === doc.file_id}
+                    className="flex items-center gap-1.5 px-3 py-2 text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold transition-all disabled:opacity-50 active:scale-95 shadow-sm"
+                    title="Resume embedding and upsert to Qdrant"
+                  >
+                    {retryingId === doc.file_id ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Retrying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw size={14} />
+                        <span>Retry</span>
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
+
+                {/* Delete Action Button */}
+                <button
+                  type="button"
+                  onClick={() => handleDelete(doc)}
+                  disabled={deletingId === doc.file_id || retryingId === doc.file_id}
+                  className="flex items-center gap-1.5 px-3 py-2 text-red-600 hover:bg-red-50 border border-red-100 hover:border-red-200 rounded-xl text-xs font-bold transition-all disabled:opacity-50 shrink-0 active:scale-95"
+                  title="Permanently delete document and Qdrant vectors"
+                >
+                  {deletingId === doc.file_id ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span className="hidden sm:inline">Delete</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           ))}
         </div>

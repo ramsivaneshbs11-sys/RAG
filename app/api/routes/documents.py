@@ -245,6 +245,86 @@ def list_documents(
     }
 
 
+# ── Retry Helpers ─────────────────────────────────────────────────────────────
+
+def _execute_document_retry(doc: Document, db: Session) -> dict:
+    """
+    Attempts to recover a failed document using either:
+      1. Fast-path: Preprocessed JSON exists → runs BGE embedding & Qdrant upsert (~15s)
+      2. Full-path: Preprocessed JSON missing but uploaded PDF exists → re-runs pipeline
+    """
+    entry = {
+        "document_id": doc.id,
+        "original_filename": doc.original_filename,
+        "classification": doc.classification,
+        "previous_error": doc.error_message,
+    }
+
+    # PATH A: Fast-path — preprocessed JSON exists on disk
+    prep_path = Path(doc.preprocessed_json_path) if doc.preprocessed_json_path else None
+    if prep_path and prep_path.exists():
+        logger.info(f"[{doc.id}] Fast-path retry: using existing preprocessed JSON: {prep_path}")
+        repository.update_document_status(db, doc.id, status="embedding")
+        emb_success, embedded_chunks, emb_error = run_embedding(prep_path)
+        if not emb_success:
+            repository.update_document_status(db, doc.id, status="failed", error_message=emb_error)
+            entry["status"] = "failed"
+            entry["error"] = f"Embedding failed: {emb_error}"
+            return entry
+
+        qdrant_success, qdrant_error = run_qdrant_upsert(
+            file_id=doc.id,
+            classification=doc.classification,
+            embedded_chunks=embedded_chunks,
+        )
+        if not qdrant_success:
+            repository.update_document_status(db, doc.id, status="failed", error_message=qdrant_error)
+            entry["status"] = "failed"
+            entry["error"] = f"Qdrant upsert failed: {qdrant_error}"
+            return entry
+
+        repository.update_document_status(db, doc.id, status="ingested", error_message=None)
+        entry["status"] = "ingested"
+        entry["mode"] = "fast_path_resume"
+        entry["vectors_upserted"] = len(embedded_chunks)
+        return entry
+
+    # PATH B: Full-path recovery — re-read uploaded PDF from disk if available
+    pdf_path = Path(doc.file_path) if doc.file_path else None
+    if pdf_path and pdf_path.exists():
+        logger.info(f"[{doc.id}] Full-path retry: re-running extraction from saved PDF: {pdf_path}")
+        try:
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+
+            result = run_single_ingest(
+                filename=doc.original_filename,
+                classification=doc.classification,
+                pdf_bytes=pdf_bytes,
+                db=db,
+                extractor_fn=run_extraction,
+            )
+            if result.get("status") == "success":
+                entry["status"] = "ingested"
+                entry["mode"] = "full_reingest"
+                entry["vectors_upserted"] = result.get("chunks", 0)
+                return entry
+            else:
+                entry["status"] = "failed"
+                entry["error"] = result.get("error", "Re-ingestion failed")
+                return entry
+        except Exception as exc:
+            logger.exception(f"[{doc.id}] Full-path retry exception: {exc}")
+            entry["status"] = "failed"
+            entry["error"] = str(exc)
+            return entry
+
+    # PATH C: Neither preprocessed JSON nor original PDF found on disk
+    entry["status"] = "skipped"
+    entry["reason"] = "Neither preprocessed JSON nor original PDF file found on disk."
+    return entry
+
+
 # ── Retry-failed endpoint ─────────────────────────────────────────────────────
 
 @router.post("/documents/retry-failed", status_code=status.HTTP_200_OK)
@@ -252,19 +332,13 @@ def retry_failed_documents(
     db: Session = Depends(get_db),
 ):
     """
-    Resume ingestion for all documents currently marked as **failed** in PostgreSQL.
+    Resume ingestion for all documents currently marked as **failed** in database.
 
     For each failed document this endpoint:
-    - Checks the `preprocessed_json_path` stored in the DB record exists on disk.
-    - If it exists, **skips** extraction and preprocessing entirely.
-    - Runs **BGE embedding** directly on the preprocessed JSON.
-    - Upserts the vectors to the correct **Qdrant** collection.
-    - Updates status to `ingested` on success, or records the new error on failure.
-
-    Documents whose preprocessed JSON is missing on disk are skipped with a
-    `needs_reprocessing` status — they require a full re-ingest.
-
-    Returns a summary report with per-document results.
+    - Fast-path: Uses preprocessed JSON on disk, skipping extraction entirely (~15s).
+    - Full-path: If preprocessed JSON is missing, re-extracts from the saved PDF file.
+    - Upserts the vectors to the correct Qdrant collection.
+    - Updates status to `ingested` on success.
     """
     failed_docs = db.query(Document).filter(Document.status == "failed").all()
 
@@ -285,67 +359,14 @@ def retry_failed_documents(
     still_failed = 0
 
     for doc in failed_docs:
-        entry = {
-            "document_id": doc.id,
-            "original_filename": doc.original_filename,
-            "classification": doc.classification,
-            "previous_error": doc.error_message,
-        }
-
-        # ── Guard: preprocessed JSON must exist on disk ────────────────────────
-        if not doc.preprocessed_json_path:
-            entry["status"] = "skipped"
-            entry["reason"] = "preprocessed_json_path not set in DB — full re-ingest required."
-            logger.warning(f"[{doc.id}] retry-failed: skipped — no preprocessed_json_path.")
-            results.append(entry)
-            skipped += 1
-            continue
-
-        prep_path = Path(doc.preprocessed_json_path)
-        if not prep_path.exists():
-            entry["status"] = "skipped"
-            entry["reason"] = f"Preprocessed JSON missing on disk: {prep_path.name} — full re-ingest required."
-            logger.warning(f"[{doc.id}] retry-failed: skipped — file not found: {prep_path}")
-            results.append(entry)
-            skipped += 1
-            continue
-
-        # ── Step 1: Embedding ─────────────────────────────────────────────────
-        repository.update_document_status(db, doc.id, status="embedding")
-        emb_success, embedded_chunks, emb_error = run_embedding(prep_path)
-
-        if not emb_success:
-            repository.update_document_status(db, doc.id, status="failed", error_message=emb_error)
-            entry["status"] = "failed"
-            entry["error"] = emb_error
-            logger.error(f"[{doc.id}] retry-failed: embedding failed: {emb_error}")
-            results.append(entry)
-            still_failed += 1
-            continue
-
-        # ── Step 2: Qdrant upsert ─────────────────────────────────────────────
-        qdrant_success, qdrant_error = run_qdrant_upsert(
-            file_id=doc.id,
-            classification=doc.classification,
-            embedded_chunks=embedded_chunks,
-        )
-
-        if not qdrant_success:
-            repository.update_document_status(db, doc.id, status="failed", error_message=qdrant_error)
-            entry["status"] = "failed"
-            entry["error"] = qdrant_error
-            logger.error(f"[{doc.id}] retry-failed: qdrant upsert failed: {qdrant_error}")
-            results.append(entry)
-            still_failed += 1
-            continue
-
-        # ── Success ───────────────────────────────────────────────────────────
-        repository.update_document_status(db, doc.id, status="ingested", error_message=None)
-        entry["status"] = "ingested"
-        entry["vectors_upserted"] = len(embedded_chunks)
-        logger.info(f"[{doc.id}] retry-failed: '{doc.original_filename}' recovered successfully.")
+        entry = _execute_document_retry(doc, db)
         results.append(entry)
-        recovered += 1
+        if entry["status"] == "ingested":
+            recovered += 1
+        elif entry["status"] == "skipped":
+            skipped += 1
+        else:
+            still_failed += 1
 
     logger.info(
         f"retry-failed complete — recovered={recovered}, "
@@ -353,13 +374,42 @@ def retry_failed_documents(
     )
 
     return {
-        "message": "Retry complete.",
+        "message": f"Retry complete: {recovered} recovered, {still_failed} failed, {skipped} skipped.",
         "total_failed_found": len(failed_docs),
         "recovered": recovered,
         "skipped": skipped,
         "still_failed": still_failed,
         "results": results,
     }
+
+
+# ── Single document retry endpoint ──────────────────────────────────────────
+
+@router.post("/documents/{document_id}/retry", status_code=status.HTTP_200_OK)
+def retry_single_document(
+    document_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Retry ingestion for a single specific failed document.
+    """
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document '{document_id}' not found.",
+        )
+
+    logger.info(f"[{document_id}] Starting single document retry for '{doc.original_filename}'...")
+    result = _execute_document_retry(doc, db)
+
+    if result["status"] == "failed":
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.get("error", "Document recovery failed."),
+        )
+
+    return result
 
 
 # ── Delete document endpoint ────────────────────────────────────────────────
