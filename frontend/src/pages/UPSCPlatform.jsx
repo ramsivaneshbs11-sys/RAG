@@ -43,9 +43,10 @@ const UPSCPlatform = () => {
   const [activeChatFilter, setActiveChatFilter] = useState('Polity');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Auto-scroll to top on view change
+  // Auto-scroll to top on view change & set document title
   useEffect(() => {
     window.scrollTo(0, 0);
+    document.title = view === 'landing' ? 'UPSC AI — Interactive Prep Platform' : `${view.toUpperCase()} | UPSC AI`;
   }, [view]);
 
   const renderLanding = () => (
@@ -62,7 +63,7 @@ const UPSCPlatform = () => {
               placeholder="Ask anything about UPSC in seconds..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && setView('chat')}
+              onKeyDown={(e) => e.key === 'Enter' && setView('chat')}
             />
             <button className="btn-search" onClick={() => setView('chat')}>
               <Search size={22} />

@@ -21,8 +21,26 @@ UPLOAD_DIR: Path = BASE_DIR / "uploads"
 EXTRACTED_DIR: Path = BASE_DIR / "data" / "extracted"
 PREPROCESSED_DIR: Path = BASE_DIR / "data" / "preprocessed"
 
-# Allowed document classifications
+# Allowed document classifications (built-in base)
 ALLOWED_CLASSIFICATIONS = ["History", "Anthropology"]
+
+
+def get_all_allowed_classifications(db=None) -> list[str]:
+    """
+    Return all allowed classifications: built-in defaults + any dynamically registered
+    classifications in the database.
+    """
+    classes = list(ALLOWED_CLASSIFICATIONS)
+    if db is not None:
+        try:
+            from app.database import classification_repository as cls_repo
+            dynamic = [c.name for c in cls_repo.list_classifications(db)]
+            for name in dynamic:
+                if name not in classes:
+                    classes.append(name)
+        except Exception:
+            pass
+    return classes
 
 # ── Qdrant vector database ─────────────────────────────────────────────────
 QDRANT_HOST: str = os.environ.get("QDRANT_HOST", "localhost")

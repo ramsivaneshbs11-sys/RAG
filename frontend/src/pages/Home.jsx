@@ -7,6 +7,7 @@ import LoginModal from '../components/auth/LoginModal';
 import BottomNavigation from '../components/layout/BottomNavigation';
 import MobileChat from '../components/tools/MobileChat';
 import MobileProfile from '../components/tools/MobileProfile';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useApp } from '../context/AppContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Trash2, FileText, Edit3 } from 'lucide-react';
@@ -21,6 +22,12 @@ const Home = () => {
   const [isAddingNote, setIsAddingNote] = React.useState(false);
   const [editingId, setEditingId] = React.useState(null);
   const [editText, setEditText] = React.useState('');
+  const [confirmDialog, setConfirmDialog] = React.useState(null);
+
+  // Per-page document title
+  React.useEffect(() => {
+    document.title = activeTab ? `${activeTab} | UPSC AI` : 'UPSC AI — Your AI Study Mentor';
+  }, [activeTab]);
 
   const handleSaveNote = () => {
     if (noteInput.trim()) {
@@ -38,9 +45,12 @@ const Home = () => {
   };
 
   const handleDeleteNote = (id) => {
-    if (window.confirm('Do you want to delete this note?')) {
-      deleteNote(id);
-    }
+    setConfirmDialog({
+      title: 'Delete Note',
+      message: 'Are you sure you want to delete this note? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      onConfirm: () => deleteNote(id),
+    });
   };
 
   const isAdminTab = [
@@ -237,6 +247,7 @@ const Home = () => {
 
       {/* Global Modals */}
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      <ConfirmDialog config={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </div>
   );
 };

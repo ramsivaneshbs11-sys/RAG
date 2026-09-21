@@ -462,7 +462,8 @@ input:focus {
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.8);
-  backdrop-blur: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -6,6 +6,7 @@ import {
   TrendingUp, Newspaper, Server, Play, Trash, RotateCcw, ArrowRight, Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 const TABS = [
@@ -646,6 +647,7 @@ const DocumentsManagementTab = () => {
   const [retryingId, setRetryingId] = useState(null);
   const [retryingAll, setRetryingAll] = useState(false);
   const [toast, setToast] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -672,25 +674,30 @@ const DocumentsManagementTab = () => {
   }, []);
 
   const handleDelete = async (doc) => {
-    if (!window.confirm(`Permanently delete "${doc.original_filename}"?\n\nThis will remove all associated vector embeddings from Qdrant and delete the file from the server.`)) {
-      return;
-    }
-    setDeletingId(doc.file_id);
-    try {
-      const res = await fetch(`/api/v1/documents/${doc.file_id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (res.ok) {
-        showToast(`✓ Deleted "${doc.original_filename}" (${data.qdrant_vectors_deleted ?? 0} vectors removed from Qdrant)`);
-        setDocuments(prev => prev.filter(d => d.file_id !== doc.file_id));
-      } else {
-        showToast(`❌ Delete failed: ${data.detail || 'Server error'}`);
-      }
-    } catch (err) {
-      showToast(`❌ Error: ${err.message}`);
-    } finally {
-      setDeletingId(null);
-    }
+    setConfirmDialog({
+      title: 'Delete Document',
+      message: `Permanently delete "${doc.original_filename}"?\n\nThis will remove all associated vector embeddings from Qdrant and delete the file from the server.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setDeletingId(doc.file_id);
+        try {
+          const res = await fetch(`/api/v1/documents/${doc.file_id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`✓ Deleted "${doc.original_filename}" (${data.qdrant_vectors_deleted ?? 0} vectors removed from Qdrant)`);
+            setDocuments(prev => prev.filter(d => d.file_id !== doc.file_id));
+          } else {
+            showToast(`❌ Delete failed: ${data.detail || 'Server error'}`);
+          }
+        } catch (err) {
+          showToast(`❌ Error: ${err.message}`);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
+
 
   const handleRetrySingle = async (doc) => {
     setRetryingId(doc.file_id);
@@ -937,6 +944,7 @@ const DocumentsManagementTab = () => {
           ))}
         </div>
       )}
+      <ConfirmDialog config={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </div>
   );
 };
@@ -951,6 +959,7 @@ const ClassificationTab = () => {
   const [showForm, setShowForm] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [saving, setSaving]     = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', anchors: '' });
   const [formError, setFormError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -1016,22 +1025,28 @@ const ClassificationTab = () => {
   };
 
   const handleDelete = async (name) => {
-    if (!window.confirm(`Delete classification "${name}"? This will drop its Qdrant collection and remove its syllabus anchors.`)) return;
-    setDeleting(name);
-    try {
-      const res = await fetch(`/api/v1/classifications/${encodeURIComponent(name)}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Delete failed');
-      }
-      setSuccessMsg(`✓ Classification "${name}" removed.`);
-      fetchClassifications();
-      setTimeout(() => setSuccessMsg(''), 4000);
-    } catch (err) {
-      setError(`Delete error: ${err.message}`);
-    } finally {
-      setDeleting(null);
-    }
+    setConfirmDialog({
+      title: 'Delete Classification',
+      message: `Delete classification "${name}"? This will drop its Qdrant collection and remove its syllabus anchors.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setDeleting(name);
+        try {
+          const res = await fetch(`/api/v1/classifications/${encodeURIComponent(name)}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Delete failed');
+          }
+          setSuccessMsg(`✓ Classification "${name}" removed.`);
+          fetchClassifications();
+          setTimeout(() => setSuccessMsg(''), 4000);
+        } catch (err) {
+          setError(`Delete error: ${err.message}`);
+        } finally {
+          setDeleting(null);
+        }
+      },
+    });
   };
 
   return (
@@ -1175,6 +1190,7 @@ const ClassificationTab = () => {
           ))}
         </div>
       )}
+      <ConfirmDialog config={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </div>
   );
 };

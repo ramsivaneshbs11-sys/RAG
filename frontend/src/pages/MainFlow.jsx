@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Lock, CheckCircle2, ChevronRight, MessageSquare, BookOpen, Newspaper, Star, Loader2, ArrowRight, ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Send, Lock, CheckCircle2, ChevronRight, MessageSquare, BookOpen, Newspaper, Star, Loader2, ArrowRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
 import { useApp } from '../context/AppContext';
-import { Trash2 } from 'lucide-react';
 import './MainFlow.css';
 
 const MainFlow = () => {
@@ -42,6 +42,11 @@ const MainFlow = () => {
   // Focus management
   const firstNameRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Per-page document title
+  useEffect(() => {
+    document.title = 'UPSC Preparation Workflow | UPSC AI';
+  }, []);
 
   useEffect(() => {
     if (step === 1 && firstNameRef.current) {
@@ -295,7 +300,19 @@ const MainFlow = () => {
                 <div key={i} className={`msg-wrapper ${msg.role}`}>
                   <div className="msg-bubble">
                     {msg.role === 'ai' ? (
-                      <div className="formatted-content" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n\n/g, '<br/><br/>').replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                      <div className="formatted-content prose prose-sm max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong style={{color: 'var(--upsc-gold)'}}>{children}</strong>,
+                            ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 mb-2">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal pl-4 space-y-1 mb-2">{children}</ol>,
+                            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
                     ) : (
                       msg.content
                     )}

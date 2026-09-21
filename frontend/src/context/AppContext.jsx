@@ -20,7 +20,7 @@ export const AppProvider = ({ children }) => {
     return savedUser ? JSON.parse(savedUser) : { name: 'UPSC Aspirant', plan: 'Free' };
   });
 
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('upsc_user'));
   const [notes, setNotes] = useState(() => {
     const savedNotes = localStorage.getItem('upsc_notes');
     return savedNotes ? JSON.parse(savedNotes) : [];

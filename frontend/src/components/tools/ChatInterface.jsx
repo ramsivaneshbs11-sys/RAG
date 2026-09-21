@@ -359,7 +359,7 @@ const ChatInterface = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !isTyping && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !isTyping && handleSend()}
               placeholder={isTyping ? 'Generating answer...' : 'Ask your UPSC doubt...'}
               disabled={isTyping}
               className="w-full pl-5 pr-32 py-4 bg-gray-50 border border-gray-200 rounded-2xl shadow-sm focus:border-[#0f2242] transition-all text-[#0f2242] text-sm outline-none placeholder:text-gray-400 font-medium disabled:opacity-60 disabled:cursor-not-allowed"

@@ -17,6 +17,10 @@ const Onboarding = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    document.title = 'Setup Your Profile | UPSC AI';
+  }, []);
+
+  useEffect(() => {
     const tempPhone = localStorage.getItem('upsc_temp_phone');
     if (!tempPhone) {
       navigate('/');

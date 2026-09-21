@@ -21,7 +21,7 @@ from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, s
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.config import ALLOWED_CLASSIFICATIONS
+from app.core.config import ALLOWED_CLASSIFICATIONS, get_all_allowed_classifications
 from app.database.session import get_db
 from app.database.models import Document
 from app.database import repository
@@ -35,16 +35,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["documents"])
 
 
-class ClassificationEnum(str, Enum):
-    HISTORY = "History"
-    ANTHROPOLOGY = "Anthropology"
-
-
 # ── Request body for folder ingestion ─────────────────────────────────────────
 
 class FolderIngestRequest(BaseModel):
     folder_path: str
-    classification: ClassificationEnum
+    classification: str
 
 
 # ── Multi-file upload endpoint ────────────────────────────────────────────────
@@ -52,8 +47,8 @@ class FolderIngestRequest(BaseModel):
 @router.post("/documents", status_code=status.HTTP_201_CREATED)
 async def ingest_files(
     files: List[UploadFile] = File(..., description="One or more PDF files to ingest"),
-    classification: ClassificationEnum = Form(
-        ..., description="Document classification: History or Anthropology"
+    classification: str = Form(
+        ..., description="Document classification e.g. History, Anthropology, or dynamic subject"
     ),
     db: Session = Depends(get_db),
 ):
@@ -73,6 +68,14 @@ async def ingest_files(
         raise HTTPException(
             status_code=400,
             detail=f"Invalid classification '{classification}'. Allowed: {ALLOWED_CLASSIFICATIONS}",
+        )
+
+    # ── Validate classification ───────────────────────────────────────────────
+    allowed = get_all_allowed_classifications(db)
+    if classification not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid classification '{classification}'. Allowed: {allowed}",
         )
 
     if not files:
@@ -132,12 +135,13 @@ def ingest_folder(
     → Preprocess → Embed → Qdrant upsert
     """
     # ── Validate classification ───────────────────────────────────────────────
-    if body.classification not in ALLOWED_CLASSIFICATIONS:
+    allowed = get_all_allowed_classifications(db)
+    if body.classification not in allowed:
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Invalid classification '{body.classification}'. "
-                f"Allowed: {ALLOWED_CLASSIFICATIONS}"
+                f"Allowed: {allowed}"
             ),
         )
 

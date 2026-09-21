@@ -76,6 +76,26 @@ def ensure_collections():
         )
 
 
+def resolve_collection_name(classification: str) -> str:
+    """Resolve Qdrant collection name for built-in or dynamic classifications."""
+    if classification in QDRANT_COLLECTION_MAP:
+        return QDRANT_COLLECTION_MAP[classification]
+
+    # Check dynamic classifications in DB
+    try:
+        from app.database.session import SessionLocal
+        from app.database.classification_models import Classification
+        with SessionLocal() as db:
+            c = db.query(Classification).filter(Classification.name == classification).first()
+            if c and c.collection_name:
+                return c.collection_name
+    except Exception:
+        pass
+
+    clean_name = classification.strip().lower().replace(" ", "_")
+    return f"{clean_name}_collection"
+
+
 def run_qdrant_upsert(
     file_id: str,
     classification: str,
@@ -86,13 +106,13 @@ def run_qdrant_upsert(
 
     Args:
         file_id:         UUID of the document record.
-        classification:  'History' or 'Anthropology'.
+        classification:  'History', 'Anthropology', or any registered dynamic subject.
         embedded_chunks: Output list from run_embedding().
 
     Returns:
         (success: bool, error_message: str | None)
     """
-    collection_name = QDRANT_COLLECTION_MAP.get(classification)
+    collection_name = resolve_collection_name(classification)
     if not collection_name:
         error_msg = f"No Qdrant collection mapped for classification '{classification}'"
         logger.error(f"[{file_id}] {error_msg}")

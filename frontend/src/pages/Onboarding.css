@@ -181,7 +181,7 @@
 }
 
 .btn-secondary:hover {
-  color: white;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--upsc-navy);
+  border-color: var(--upsc-navy);
+  background: rgba(43, 57, 144, 0.05);
 }

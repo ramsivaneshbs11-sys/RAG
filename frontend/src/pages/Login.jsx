@@ -7,7 +7,7 @@ import { useApp } from '../context/AppContext';
 import './Login.css';
 
 // Admin password (in production, validate via backend)
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
 
 // ── StudentLogin ──────────────────────────────────────────────────────────────
 const StudentLogin = ({ onLogin }) => {
@@ -158,6 +158,10 @@ const Login = () => {
   const { login } = useApp();
   const navigate = useNavigate();
   const [roleTab, setRoleTab] = useState('student'); // 'student' | 'admin'
+
+  React.useEffect(() => {
+    document.title = 'Login | UPSC AI';
+  }, []);
 
   const handleLogin = (userData, role, destination) => {
     login(userData, role);

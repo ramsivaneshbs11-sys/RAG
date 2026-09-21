@@ -77,7 +77,7 @@ const Sidebar = () => {
         <div className={`mb-3 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest text-center ${
           isAdmin
             ? 'bg-upsc-maroon/10 text-upsc-maroon border border-upsc-maroon/20'
-            : 'bg-upsc-navy/8 text-upsc-navy/70 border border-upsc-navy/15'
+            : 'bg-upsc-navy/5 text-upsc-navy/70 border border-upsc-navy/20'
         }`}>
           {isAdmin ? '🛡️ Admin Portal' : '🎓 Student Portal'}
         </div>

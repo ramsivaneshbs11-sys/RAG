@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Edit3, X, FileText, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 const NotesPanel = () => {
   const { notes, addNote, deleteNote, updateNote } = useApp();
@@ -10,6 +11,7 @@ const NotesPanel = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const handleAdd = () => {
     if (newNote.trim()) {
@@ -27,9 +29,12 @@ const NotesPanel = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Do you want to delete this note?')) {
-      deleteNote(id);
-    }
+    setConfirmDialog({
+      title: 'Delete Note',
+      message: 'Are you sure you want to delete this note? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      onConfirm: () => deleteNote(id),
+    });
   };
 
   // Collapsed Sidebar View
@@ -163,6 +168,7 @@ const NotesPanel = () => {
           </motion.div>
         ))}
       </div>
+      <ConfirmDialog config={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </div>
   );
 };
